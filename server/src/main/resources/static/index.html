@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cooking Assistant</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .input-container {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .ingredients-container {
+            margin-top: 30px;
+        }
+        .ingredients-list {
+            list-style-type: none;
+            padding: 0;
+        }
+        .ingredient-item {
+            background-color: #f9f9f9;
+            padding: 10px 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+            border-left: 4px solid #4CAF50;
+            display: flex;
+            justify-content: space-between;
+        }
+        .ingredient-name {
+            font-weight: bold;
+        }
+        .ingredient-price {
+            color: #666;
+        }
+        .loading {
+            text-align: center;
+            margin: 20px 0;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <h1>Cooking Assistant</h1>
+    
+    <div class="input-container">
+        <label for="user-prompt">I would like to cook...</label>
+        <input type="text" id="user-prompt" placeholder="Enter what you'd like to cook, e.g. 'a salad for dinner'">
+    </div>
+    
+    <button id="cook-button">Cook</button>
+    
+    <div class="loading" id="loading">
+        Finding ingredients...
+    </div>
+    
+    <div class="ingredients-container">
+        <h2>Ingredients</h2>
+        <ul class="ingredients-list" id="ingredients-list">
+            <!-- Ingredients will be added here dynamically -->
+        </ul>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const userPromptInput = document.getElementById('user-prompt');
+            const cookButton = document.getElementById('cook-button');
+            const ingredientsList = document.getElementById('ingredients-list');
+            const loadingIndicator = document.getElementById('loading');
+            
+            let eventSource = null;
+            
+            cookButton.addEventListener('click', function() {
+                const userPrompt = userPromptInput.value.trim();
+                
+                if (!userPrompt) {
+                    alert('Please enter what you would like to cook');
+                    return;
+                }
+                
+                // Clear previous ingredients and show loading
+                ingredientsList.innerHTML = '';
+                loadingIndicator.style.display = 'block';
+                
+                // Clear the input field
+                userPromptInput.value = '';
+                
+                // Close previous SSE connection if exists
+                if (eventSource) {
+                    eventSource.close();
+                }
+                
+                // Send the cook request
+                fetch('/cook', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ input: userPrompt })
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    
+                    // Set up SSE connection
+                    eventSource = new EventSource('/cook');
+                    
+                    eventSource.addEventListener('ingredients', function(event) {
+                        loadingIndicator.style.display = 'none';
+                        
+                        const ingredients = JSON.parse(event.data);
+                        displayIngredients(ingredients);
+                        
+                        // Close the SSE connection after receiving ingredients
+                        eventSource.close();
+                    });
+                    
+                    eventSource.onerror = function() {
+                        loadingIndicator.style.display = 'none';
+                        alert('Error receiving ingredients');
+                        eventSource.close();
+                    };
+                })
+                .catch(error => {
+                    loadingIndicator.style.display = 'none';
+                    alert('Error: ' + error.message);
+                });
+            });
+            
+            function displayIngredients(ingredients) {
+                ingredientsList.innerHTML = '';
+                
+                ingredients.forEach(ingredient => {
+                    const listItem = document.createElement('li');
+                    listItem.className = 'ingredient-item';
+                    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.className = 'ingredient-name';
+                    nameSpan.textContent = ingredient.name;
+                    
+                    const priceSpan = document.createElement('span');
+                    priceSpan.className = 'ingredient-price';
+                    priceSpan.textContent = `$${ingredient.price.toFixed(2)}`;
+                    
+                    listItem.appendChild(nameSpan);
+                    listItem.appendChild(priceSpan);
+                    ingredientsList.appendChild(listItem);
+                });
+            }
+        });
+    </script>
+</body>
+</html>
