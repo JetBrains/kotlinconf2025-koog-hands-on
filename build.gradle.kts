@@ -10,7 +10,6 @@ allprojects {
     repositories {
         mavenCentral()
         maven(url = "https://packages.jetbrains.team/maven/p/konfy/maven")
-        maven(url = "https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public")
-        mavenLocal() // TODO remove after merge of latest changes to master
+        maven(url = "https://packages.jetbrains.team/maven/p/grazi/grazie-platform-public") // TODO: Delete when agents are deployed into mavenCentral repository
     }
 }

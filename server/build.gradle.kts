@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
-
 dependencies {
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.core)
@@ -17,10 +16,7 @@ dependencies {
     implementation(libs.logback.classic)
 
     implementation(libs.koog.agents)
-    implementation(libs.klogging.jvm)
-    implementation(libs.klogging.slf4j)
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
-    testImplementation(libs.ktor.server.test.host)
 }
