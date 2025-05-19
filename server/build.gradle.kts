@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.serialization)
 }
 
+
 dependencies {
     implementation(libs.ktor.server.default.headers)
     implementation(libs.ktor.server.core)
