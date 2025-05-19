@@ -16,6 +16,10 @@ dependencies {
     implementation(libs.ktor.server.config.yaml)
     implementation(libs.logback.classic)
 
+    implementation(libs.koog.agents)
+    implementation(libs.klogging.jvm)
+    implementation(libs.klogging.slf4j)
+
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.ktor.server.test.host)
