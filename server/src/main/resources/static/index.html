@@ -5,15 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cooking Assistant</title>
     <style>
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --input-bg: #ffffff;
+            --input-border: #dddddd;
+            --button-bg: #4CAF50;
+            --button-hover: #45a049;
+            --item-bg: #f9f9f9;
+            --item-border: #4CAF50;
+            --price-color: #666666;
+            --h1-color: #333333;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #222222;
+            --text-color: #e0e0e0;
+            --input-bg: #333333;
+            --input-border: #555555;
+            --button-bg: #388e3c;
+            --button-hover: #2e7d32;
+            --item-bg: #333333;
+            --item-border: #4CAF50;
+            --price-color: #aaaaaa;
+            --h1-color: #e0e0e0;
+        }
+
         body {
             font-family: Arial, sans-serif;
             max-width: 800px;
             margin: 0 auto;
             padding: 20px;
             line-height: 1.6;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: all 0.3s ease;
         }
         h1 {
-            color: #333;
+            color: var(--h1-color);
             text-align: center;
         }
         .input-container {
@@ -28,11 +57,13 @@
             width: 100%;
             padding: 10px;
             font-size: 16px;
-            border: 1px solid #ddd;
+            border: 1px solid var(--input-border);
             border-radius: 4px;
+            background-color: var(--input-bg);
+            color: var(--text-color);
         }
         button {
-            background-color: #4CAF50;
+            background-color: var(--button-bg);
             color: white;
             padding: 10px 20px;
             border: none;
@@ -41,7 +72,7 @@
             font-size: 16px;
         }
         button:hover {
-            background-color: #45a049;
+            background-color: var(--button-hover);
         }
         .ingredients-container {
             margin-top: 30px;
@@ -51,11 +82,11 @@
             padding: 0;
         }
         .ingredient-item {
-            background-color: #f9f9f9;
+            background-color: var(--item-bg);
             padding: 10px 15px;
             margin-bottom: 10px;
             border-radius: 4px;
-            border-left: 4px solid #4CAF50;
+            border-left: 4px solid var(--item-border);
             display: flex;
             justify-content: space-between;
         }
@@ -63,16 +94,73 @@
             font-weight: bold;
         }
         .ingredient-price {
-            color: #666;
+            color: var(--price-color);
         }
         .loading {
             text-align: center;
             margin: 20px 0;
             display: none;
         }
+        .theme-toggle {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            display: flex;
+            align-items: center;
+        }
+        .theme-toggle label {
+            margin-right: 10px;
+            cursor: pointer;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 34px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider {
+            background-color: #2196F3;
+        }
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
     </style>
 </head>
 <body>
+    <div class="theme-toggle">
+        <label for="theme-switch">Dark Mode</label>
+        <label class="switch">
+            <input type="checkbox" id="theme-switch">
+            <span class="slider"></span>
+        </label>
+    </div>
     <div style="text-align: center; margin-bottom: 50px;">
         <img src="/image/koog_book_logo.png" alt="Koog Book Logo" style="max-width: 200px;">
     </div>
@@ -101,6 +189,30 @@
             const cookButton = document.getElementById('cook-button');
             const ingredientsList = document.getElementById('ingredients-list');
             const loadingIndicator = document.getElementById('loading');
+            const themeSwitch = document.getElementById('theme-switch');
+
+            // Theme handling
+            function setTheme(isDark) {
+                if (isDark) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    themeSwitch.checked = true;
+                } else {
+                    document.documentElement.removeAttribute('data-theme');
+                    themeSwitch.checked = false;
+                }
+                localStorage.setItem('darkTheme', isDark);
+            }
+
+            // Check for saved theme preference
+            const savedTheme = localStorage.getItem('darkTheme');
+            if (savedTheme === 'true') {
+                setTheme(true);
+            }
+
+            // Handle theme switch
+            themeSwitch.addEventListener('change', function() {
+                setTheme(this.checked);
+            });
 
             let eventSource = null;
 
