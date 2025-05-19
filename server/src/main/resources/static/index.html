@@ -73,19 +73,21 @@
     </style>
 </head>
 <body>
-    <h1>Cooking Assistant</h1>
-    
+    <div style="text-align: center; margin-bottom: 50px;">
+        <img src="/image/koog_book_logo.png" alt="Koog Book Logo" style="max-width: 200px;">
+    </div>
+
     <div class="input-container">
         <label for="user-prompt">I would like to cook...</label>
         <input type="text" id="user-prompt" placeholder="Enter what you'd like to cook, e.g. 'a salad for dinner'">
     </div>
-    
+
     <button id="cook-button">Cook</button>
-    
+
     <div class="loading" id="loading">
         Finding ingredients...
     </div>
-    
+
     <div class="ingredients-container">
         <h2>Ingredients</h2>
         <ul class="ingredients-list" id="ingredients-list">
@@ -99,29 +101,29 @@
             const cookButton = document.getElementById('cook-button');
             const ingredientsList = document.getElementById('ingredients-list');
             const loadingIndicator = document.getElementById('loading');
-            
+
             let eventSource = null;
-            
+
             cookButton.addEventListener('click', function() {
                 const userPrompt = userPromptInput.value.trim();
-                
+
                 if (!userPrompt) {
                     alert('Please enter what you would like to cook');
                     return;
                 }
-                
+
                 // Clear previous ingredients and show loading
                 ingredientsList.innerHTML = '';
                 loadingIndicator.style.display = 'block';
-                
+
                 // Clear the input field
                 userPromptInput.value = '';
-                
+
                 // Close previous SSE connection if exists
                 if (eventSource) {
                     eventSource.close();
                 }
-                
+
                 // Send the cook request
                 fetch('/cook', {
                     method: 'POST',
@@ -134,20 +136,20 @@
                     if (!response.ok) {
                         throw new Error('Network response was not ok');
                     }
-                    
+
                     // Set up SSE connection
                     eventSource = new EventSource('/cook');
-                    
+
                     eventSource.addEventListener('ingredients', function(event) {
                         loadingIndicator.style.display = 'none';
-                        
+
                         const ingredients = JSON.parse(event.data);
                         displayIngredients(ingredients);
-                        
+
                         // Close the SSE connection after receiving ingredients
                         eventSource.close();
                     });
-                    
+
                     eventSource.onerror = function() {
                         loadingIndicator.style.display = 'none';
                         alert('Error receiving ingredients');
@@ -159,22 +161,22 @@
                     alert('Error: ' + error.message);
                 });
             });
-            
+
             function displayIngredients(ingredients) {
                 ingredientsList.innerHTML = '';
-                
+
                 ingredients.forEach(ingredient => {
                     const listItem = document.createElement('li');
                     listItem.className = 'ingredient-item';
-                    
+
                     const nameSpan = document.createElement('span');
                     nameSpan.className = 'ingredient-name';
                     nameSpan.textContent = ingredient.name;
-                    
+
                     const priceSpan = document.createElement('span');
                     priceSpan.className = 'ingredient-price';
                     priceSpan.textContent = `$${ingredient.price.toFixed(2)}`;
-                    
+
                     listItem.appendChild(nameSpan);
                     listItem.appendChild(priceSpan);
                     ingredientsList.appendChild(listItem);

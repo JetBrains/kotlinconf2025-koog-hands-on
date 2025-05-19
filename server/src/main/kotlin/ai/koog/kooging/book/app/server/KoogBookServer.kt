@@ -65,6 +65,8 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
                 default("index.html")
             }
 
+            staticResources("/image", "image")
+
             // Cook POST endpoint - receives the user prompt
             post("/cook") {
                 val request = call.receive<CookRequest>()
