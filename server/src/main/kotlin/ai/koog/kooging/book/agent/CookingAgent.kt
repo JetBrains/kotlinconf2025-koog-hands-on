@@ -1,27 +1,51 @@
 package ai.koog.kooging.book.agent
 
 import ai.koog.agents.core.agent.AIAgent
+import ai.koog.agents.core.agent.AIAgent.FeatureContext
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
 import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
+import ai.koog.agents.core.dsl.extension.nodeExecuteTool
+import ai.koog.agents.core.dsl.extension.nodeLLMRequest
+import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
+import ai.koog.agents.core.dsl.extension.onAssistantMessage
+import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.reflect.asTool
 import ai.koog.agents.ext.agent.subgraphWithTask
-import ai.koog.agents.local.features.eventHandler.feature.handleEvents
+import ai.koog.agents.local.features.eventHandler.feature.EventHandler
 import ai.koog.agents.local.features.tracing.feature.Tracing
 import ai.koog.kooging.book.agent.tool.ShoppingTools
+import ai.koog.kooging.book.app.model.LLMErrorMessage
+import ai.koog.kooging.book.app.model.LLMMessage
+import ai.koog.kooging.book.app.model.LLMMessageType
+import ai.koog.kooging.book.app.model.Message
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
 import ai.koog.prompt.executor.llms.SingleLLMPromptExecutor
 import ai.koog.prompt.llm.LLModel
 import ai.koog.prompt.markdown.markdown
-import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import org.slf4j.LoggerFactory
 
 class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(CookingAgent::class.java)
+
+        fun CoroutineScope.startCookAgent(cookingRequest: String, onAgentEvent: suspend (Message) -> Unit) {
+            val agent = CookingAgent()
+            launch(Dispatchers.IO) {
+                agent.execute(cookingRequest, onAgentEvent)
+            }
+        }
+    }
 
     private val token: String =
         System.getenv("OPEN_AI_TOKEN") ?: error("OPEN_AI_TOKEN environment variable is not set")
@@ -99,17 +123,25 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
             edge(nodeStart forwardTo splitDishIntoIngredients)
             edge(splitDishIntoIngredients forwardTo searchIngredients transformed { it.result })
             edge(searchIngredients forwardTo nodeFinish transformed { it.result })
+
+            // TODO: Delete - Simple test
+//            val askNode by nodeLLMRequest("Ask LLM")
+//            val nodeExecuteTool by nodeExecuteTool("nodeExecuteTool")
+//            val nodeSendToolResult by nodeLLMSendToolResult("nodeSendToolResult")
+//            edge(nodeStart forwardTo askNode)
+//            edge(askNode forwardTo nodeExecuteTool onToolCall { true })
+//            edge(nodeExecuteTool forwardTo nodeSendToolResult)
+//            edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
+//            edge(askNode forwardTo nodeFinish onAssistantMessage { true })
         }
 
-    suspend fun execute(cookingRequest: String): String? {
+    suspend fun execute(cookingRequest: String, onAgentEvent: suspend (Message) -> Unit): String? {
         val executor = SingleLLMPromptExecutor(OpenAILLMClient(apiKey = token))
 
         val toolRegistry = ToolRegistry {
             tool(ShoppingTools::searchIngredient.asTool())
             tool(ShoppingTools::putProductInShoppingBasket.asTool())
         }
-
-        val expectedResult = CompletableDeferred<String?>()
 
         val strategy = createCookingStrategy()
 
@@ -121,22 +153,45 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
             maxAgentIterations = 100
         )
 
-        AIAgent(
+        val agent = AIAgent(
             promptExecutor = executor,
             strategy = strategy,
             agentConfig = agentConfig,
             toolRegistry = toolRegistry,
-        ) {
-            install(Tracing.Feature)
+            installFeatures = { configureFeatures(onAgentEvent) }
+        )
 
-            handleEvents {
-                onAgentFinished = { strategyName: String, result: String? ->
-                    expectedResult.complete(result)
-                }
+        val agentResult = agent.runAndGetResult(cookingRequest)
+        logger.info("Agent finished with result: $agentResult")
+
+        return agentResult
+    }
+
+    private fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
+        install(Tracing)
+
+        install(EventHandler) {
+            onToolCallResult = { tool, toolArgs, result ->
+                val message = LLMMessage(
+                    type = LLMMessageType.TOOL_CALL,
+                    content = "Call tool: '${tool.name}', args: '$toolArgs', result: '$result'"
+                )
+                onAgentEvent(message)
             }
-        }.run(cookingRequest)
 
-        return expectedResult.await()
+            onAgentFinished = { strategyName: String, result: String? ->
+                val message = LLMMessage(
+                    type = LLMMessageType.ASSISTANT,
+                    content = result ?: "UNKNOWN RESULT"
+                )
+                onAgentEvent(message)
+            }
+
+            onAgentRunError = { strategyName, throwable ->
+                val message = LLMErrorMessage(message = throwable.message ?: "UNKNOWN ERROR")
+                onAgentEvent(message)
+            }
+        }
     }
 }
 
@@ -146,7 +201,7 @@ fun main() = runBlocking {
 
     println("Starting agent with request: $cookingRequest")
     val agent = CookingAgent()
-    val result = agent.execute(cookingRequest)
+    val result = agent.execute(cookingRequest) {}
 
     println("Agent finished with result: $result")
 }

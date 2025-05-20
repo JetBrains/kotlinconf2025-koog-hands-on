@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.logback.classic)
 
     implementation(libs.koog.agents)
+    implementation("io.ktor:ktor-server-sse:3.1.3")
 
     testImplementation(kotlin("test"))
     testImplementation(libs.kotlinx.coroutines.test)

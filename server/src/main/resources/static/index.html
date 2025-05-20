@@ -101,6 +101,25 @@
             margin: 20px 0;
             display: none;
         }
+        .messages-container {
+            margin-top: 30px;
+            border-top: 1px solid var(--input-border);
+            padding-top: 20px;
+        }
+        .message {
+            margin-bottom: 15px;
+            padding: 12px;
+            border-radius: 4px;
+            background-color: var(--item-bg);
+        }
+        .message.assistant {
+            border-left: 4px solid #4CAF50;
+        }
+        .message.tool-call {
+            border-left: 4px solid #2196F3;
+            font-family: monospace;
+            font-size: 0.9em;
+        }
         .theme-toggle {
             position: absolute;
             top: 20px;
@@ -183,82 +202,137 @@
         </ul>
     </div>
 
+    <div class="messages-container">
+        <h2>Agent Events</h2>
+        <div id="messages-list">
+            <!-- Agent messages will be added here dynamically -->
+        </div>
+    </div>
+    
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             const userPromptInput = document.getElementById('user-prompt');
             const cookButton = document.getElementById('cook-button');
             const ingredientsList = document.getElementById('ingredients-list');
-            const loadingIndicator = document.getElementById('loading');
-            const themeSwitch = document.getElementById('theme-switch');
-
-            // Theme handling
-            function setTheme(isDark) {
-                if (isDark) {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    themeSwitch.checked = true;
-                } else {
-                    document.documentElement.removeAttribute('data-theme');
-                    themeSwitch.checked = false;
-                }
-                localStorage.setItem('darkTheme', isDark);
-            }
-
-            // Check for saved theme preference
-            const savedTheme = localStorage.getItem('darkTheme');
-            if (savedTheme === 'true') {
-                setTheme(true);
-            }
-
-            // Handle theme switch
-            themeSwitch.addEventListener('change', function() {
-                setTheme(this.checked);
-            });
-
-            let eventSource = null;
-
-            cookButton.addEventListener('click', function() {
-                const userPrompt = userPromptInput.value.trim();
-
-                if (!userPrompt) {
-                    alert('Please enter what you would like to cook');
-                    return;
-                }
-
-                // Clear previous ingredients and show loading
-                ingredientsList.innerHTML = '';
-                loadingIndicator.style.display = 'block';
-
-                // Clear the input field
-                userPromptInput.value = '';
-
-                // Close previous SSE connection if exists
-                if (eventSource) {
-                    eventSource.close();
-                }
-
-                // Send the cook request
-                fetch('/cook', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ input: userPrompt })
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error('Network response was not ok');
+                    const messagesList = document.getElementById('messages-list');
+                    const loadingIndicator = document.getElementById('loading');
+                    const themeSwitch = document.getElementById('theme-switch');
+        
+                    // Theme handling
+                    function setTheme(isDark) {
+                        if (isDark) {
+                            document.documentElement.setAttribute('data-theme', 'dark');
+                            themeSwitch.checked = true;
+                        } else {
+                            document.documentElement.removeAttribute('data-theme');
+                            themeSwitch.checked = false;
+                        }
+                        localStorage.setItem('darkTheme', isDark);
                     }
-
-                    // Set up SSE connection
-                    eventSource = new EventSource('/cook');
-
-                    eventSource.addEventListener('ingredients', function(event) {
-                        loadingIndicator.style.display = 'none';
-
-                        const ingredients = JSON.parse(event.data);
-                        displayIngredients(ingredients);
-
-                        // Close the SSE connection after receiving ingredients
+        
+                    // Check for saved theme preference
+                    const savedTheme = localStorage.getItem('darkTheme');
+                    if (savedTheme === 'true') {
+                        setTheme(true);
+                    }
+        
+                    // Handle theme switch
+                    themeSwitch.addEventListener('change', function() {
+                        setTheme(this.checked);
+                    });
+        
+                    let eventSource = null;
+                    let sseSource = null;
+        
+                    // Function to set up SSE connection for agent events
+                    function setupSSEConnection() {
+                        // Close previous connection if exists
+                        if (sseSource) {
+                            sseSource.close();
+                        }
+                        
+                        // Create new SSE connection
+                        sseSource = new EventSource('/sse');
+                        
+                        // Listen for 'message' events from the server
+                        sseSource.addEventListener('message', function(event) {
+                            const message = JSON.parse(event.data);
+                            displayMessage(message);
+                        });
+                        
+                        sseSource.onerror = function() {
+                            console.error('Error in SSE connection');
+                            // Attempt to reconnect after a delay
+                            setTimeout(setupSSEConnection, 5000);
+                        };
+                    }
+                    
+                    // Function to display messages from the agent
+                    function displayMessage(message) {
+                        const messageElement = document.createElement('div');
+                        messageElement.className = 'message';
+                        
+                        // Add specific class based on message type
+                        if (message.type === 'ASSISTANT') {
+                            messageElement.classList.add('assistant');
+                        } else if (message.type === 'TOOL_CALL') {
+                            messageElement.classList.add('tool-call');
+                        }
+                        
+                        messageElement.textContent = message.content;
+                        messagesList.appendChild(messageElement);
+                        
+                        // Auto-scroll to the bottom of the messages
+                        messagesList.scrollTop = messagesList.scrollHeight;
+                    }
+        
+                    cookButton.addEventListener('click', function() {
+                        const userPrompt = userPromptInput.value.trim();
+        
+                        if (!userPrompt) {
+                            alert('Please enter what you would like to cook');
+                            return;
+                        }
+        
+                        // Clear previous results
+                        ingredientsList.innerHTML = '';
+                        messagesList.innerHTML = '';
+                        loadingIndicator.style.display = 'block';
+        
+                        // Clear the input field
+                        userPromptInput.value = '';
+        
+                        // Close previous SSE connection for ingredients if exists
+                        if (eventSource) {
+                            eventSource.close();
+                        }
+                        
+                        // Set up SSE connection for agent events
+                        setupSSEConnection();
+        
+                        // Send the cook request
+                        fetch('/cook', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ input: userPrompt })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+        
+                            // Set up SSE connection for ingredients
+                            eventSource = new EventSource('/cook');
+        
+                            eventSource.addEventListener('ingredients', function(event) {
+                                loadingIndicator.style.display = 'none';
+        
+                                const ingredients = JSON.parse(event.data);
+                                displayIngredients(ingredients);
+        
+                                // Close the SSE connection for ingredients after receiving them
                         eventSource.close();
                     });
 
