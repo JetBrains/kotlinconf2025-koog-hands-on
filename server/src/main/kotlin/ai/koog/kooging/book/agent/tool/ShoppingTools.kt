@@ -6,9 +6,7 @@ import ai.koog.agents.core.tools.reflect.ToolSet
 import ai.koog.kooging.book.app.service.WebShopService
 import kotlinx.serialization.json.Json
 
-object ShoppingTools : ToolSet {
-
-class ShoppingTools(private val webShop: WebShopService) {
+class ShoppingTools(private val webShop: WebShopService) : ToolSet {
 
     @Tool
     @LLMDescription("Search for an product in the food internet shop")

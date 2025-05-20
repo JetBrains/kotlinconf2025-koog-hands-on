@@ -70,7 +70,7 @@ class CookingAgent(
         }
     }
 
-    private fun createCookingStrategy(): AIAgentStrategy =
+    private fun createCookingStrategy(shoppingTools: ShoppingTools): AIAgentStrategy =
         strategy("cooking-agent") {
             val splitDishIntoIngredients by subgraphWithTask(
                 tools = emptyList()
@@ -100,9 +100,8 @@ class CookingAgent(
                 }
             }
 
-            val tools = ShoppingTools(webShop)
             val searchIngredients by subgraphWithTask(
-                tools = tools.asTools()
+                tools = shoppingTools.asTools()
             ) { ingredientList: String ->
                 markdown {
                     h1("TASK")
@@ -131,7 +130,7 @@ class CookingAgent(
             tools(shoppingTools.asTools())
         }
 
-        val cookingStrategy = createCookingStrategy()
+        val cookingStrategy = createCookingStrategy(shoppingTools)
 
         val agentConfig = AIAgentConfig(
             prompt = prompt("system") {
