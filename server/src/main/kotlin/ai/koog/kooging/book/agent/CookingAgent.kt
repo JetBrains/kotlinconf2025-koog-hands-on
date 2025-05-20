@@ -7,11 +7,6 @@ import ai.koog.agents.core.agent.entity.AIAgentStrategy
 import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
-import ai.koog.agents.core.dsl.extension.nodeExecuteTool
-import ai.koog.agents.core.dsl.extension.nodeLLMRequest
-import ai.koog.agents.core.dsl.extension.nodeLLMSendToolResult
-import ai.koog.agents.core.dsl.extension.onAssistantMessage
-import ai.koog.agents.core.dsl.extension.onToolCall
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.reflect.asTool
 import ai.koog.agents.ext.agent.subgraphWithTask
@@ -22,6 +17,7 @@ import ai.koog.kooging.book.app.model.LLMErrorMessage
 import ai.koog.kooging.book.app.model.LLMMessage
 import ai.koog.kooging.book.app.model.LLMMessageType
 import ai.koog.kooging.book.app.model.Message
+import ai.koog.kooging.book.app.service.WebShopService
 import ai.koog.prompt.dsl.prompt
 import ai.koog.prompt.executor.clients.openai.OpenAILLMClient
 import ai.koog.prompt.executor.clients.openai.OpenAIModels
@@ -34,13 +30,20 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 
-class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
+class CookingAgent(
+    private val llmModel: LLModel = OpenAIModels.Chat.GPT4o,
+    private val webShop: WebShopService
+) {
 
     companion object {
         private val logger = LoggerFactory.getLogger(CookingAgent::class.java)
 
-        fun CoroutineScope.startCookAgent(cookingRequest: String, onAgentEvent: suspend (Message) -> Unit) {
-            val agent = CookingAgent()
+        fun CoroutineScope.startCookAgent(
+            cookingRequest: String,
+            webShop: WebShopService,
+            onAgentEvent: suspend (Message) -> Unit
+        ) {
+            val agent = CookingAgent(webShop = webShop)
             launch(Dispatchers.IO) {
                 agent.execute(cookingRequest, onAgentEvent)
             }
@@ -99,10 +102,11 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
                 }
             }
 
+            val tools = ShoppingTools(webShop)
             val searchIngredients by subgraphWithTask(
                 tools = listOf(
-                    ShoppingTools::searchIngredient.asTool(),
-                    ShoppingTools::putProductInShoppingBasket.asTool()
+                    tools::searchProduct.asTool(),
+                    tools::putProductInShoppingBasket.asTool()
                 ),
                 shouldTLDRHistory = false,
             ) { ingredientList: String ->
@@ -110,7 +114,7 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
                     h1("TASK")
                     bulleted {
                         +"Your task is to search for the ingredients in the food internet shop"
-                        +"You can search for the ingredient by name using ${ShoppingTools::searchIngredient.name}, which returns the list of matches"
+                        +"You can search for the ingredient by name using ${ShoppingTools::searchProduct.name}, which returns the list of matches"
                         +"Then you can put one of the matching ingredient in the shopping basket using ${ShoppingTools::putProductInShoppingBasket.name}"
                         +"In case there are several matches, choose only 1 which fits the best"
                     }
@@ -138,9 +142,10 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
     suspend fun execute(cookingRequest: String, onAgentEvent: suspend (Message) -> Unit): String? {
         val executor = SingleLLMPromptExecutor(OpenAILLMClient(apiKey = token))
 
+        val shoppingTools = ShoppingTools(webShop)
         val toolRegistry = ToolRegistry {
-            tool(ShoppingTools::searchIngredient.asTool())
-            tool(ShoppingTools::putProductInShoppingBasket.asTool())
+            tool(shoppingTools::searchProduct.asTool())
+            tool(shoppingTools::putProductInShoppingBasket.asTool())
         }
 
         val strategy = createCookingStrategy()
@@ -200,7 +205,8 @@ fun main() = runBlocking {
     val cookingRequest = readln()
 
     println("Starting agent with request: $cookingRequest")
-    val agent = CookingAgent()
+    val webShopService = WebShopService()
+    val agent = CookingAgent(webShop = webShopService)
     val result = agent.execute(cookingRequest) {}
 
     println("Agent finished with result: $result")

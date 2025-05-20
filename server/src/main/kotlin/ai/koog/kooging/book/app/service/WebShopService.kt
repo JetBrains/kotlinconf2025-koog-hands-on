@@ -1,6 +1,5 @@
 package ai.koog.kooging.book.app.service
 
-import ai.koog.kooging.book.agent.CookingAgent
 import ai.koog.kooging.book.app.model.Product
 import ai.koog.kooging.book.app.model.ProductCatalog
 import kotlinx.serialization.json.Json
@@ -30,7 +29,7 @@ class WebShopService {
      *
      * @param id The ID of the product to add
      */
-    fun addToBasket(id: Int) {
+    fun putToBasket(id: Int) {
         findProduct(id)?.let { basket.add(it) }
     }
 
@@ -72,11 +71,11 @@ class WebShopService {
     /**
      * Searches for products in the catalogue by name.
      *
-     * @param searchTerm The term to search for in product names
+     * @param query The term to search for in product names
      * @return A list of products matching the search term
      */
-    fun searchProducts(searchTerm: String): List<Product> {
-        return catalogue.filter { it.name.contains(searchTerm, ignoreCase = true) }
+    fun searchProducts(query: String): List<Product> {
+        return catalogue.filter { it.name.contains(query, ignoreCase = true) }
     }
 
     /**

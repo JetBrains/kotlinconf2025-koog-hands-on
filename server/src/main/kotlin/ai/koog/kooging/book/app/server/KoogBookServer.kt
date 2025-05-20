@@ -23,7 +23,7 @@ import kotlinx.coroutines.flow.consumeAsFlow
 import org.slf4j.LoggerFactory
 import java.lang.AutoCloseable
 
-class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
+class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
     companion object {
         private val logger = LoggerFactory.getLogger(KoogBookServer::class.java)
@@ -88,7 +88,7 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
                 application.attributes.put(LastCookRequestKey, userInput)
 
                 // Start an agent
-//                startCookAgent(userInput) { message ->
+//                startCookAgent(userInput, webShop = webShop) { message ->
 //                    sendMessage(message = message)
 //                }
 
@@ -125,12 +125,10 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
                         )
 
                         send(serverEvent)
-                    }
-                    catch (t: CancellationException) {
+                    } catch (t: CancellationException) {
                         logger.info("SSE stream cancelled")
                         throw t
-                    }
-                    catch (t: Throwable) {
+                    } catch (t: Throwable) {
                         logger.error("Error sending SSE event: ${t.message}", t)
                     }
                 }
@@ -146,7 +144,7 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
         return products
             .shuffled()
             .take(count)
-            .map { product ->  Product(id = product.id, name = product.name, price = product.price) }
+            .map { product -> Product(id = product.id, name = product.name, price = product.price) }
     }
 
     private fun Message.toServerEventData(): String {

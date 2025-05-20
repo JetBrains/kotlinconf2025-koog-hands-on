@@ -30,7 +30,7 @@ class WebShopServiceTest {
         val webShop = WebShopService()
 
         val searchTerm = "tomato"
-        val searchResults = webShop.searchProducts(searchTerm = searchTerm)
+        val searchResults = webShop.searchProducts(query = searchTerm)
         
         assertTrue(
             searchResults.isNotEmpty(),
@@ -60,9 +60,9 @@ class WebShopServiceTest {
         val webShop = WebShopService()
         assertTrue(webShop.getBasketContent().isEmpty())
 
-        webShop.addToBasket(1)
-        webShop.addToBasket(2)
-        webShop.addToBasket(8)
+        webShop.putToBasket(1)
+        webShop.putToBasket(2)
+        webShop.putToBasket(8)
 
         val basketContents = webShop.getBasketContent()
         assertEquals(3, basketContents.size, "Basket should contain 3 items")
@@ -77,8 +77,8 @@ class WebShopServiceTest {
     fun testRemoveFromBasket() {
         val webShop = WebShopService()
 
-        webShop.addToBasket(1)
-        webShop.addToBasket(2)
+        webShop.putToBasket(1)
+        webShop.putToBasket(2)
 
         webShop.removeFromBasket(1)
 
@@ -90,7 +90,7 @@ class WebShopServiceTest {
     @Test
     fun testEmptyBasket() {
         val webShop = WebShopService()
-        webShop.addToBasket(1)
+        webShop.putToBasket(1)
 
         webShop.emptyBasket()
 
