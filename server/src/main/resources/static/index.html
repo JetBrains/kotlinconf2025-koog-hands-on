@@ -205,7 +205,7 @@
     </label>
 </div>
 <div style="text-align: center; margin-bottom: 50px;">
-    <img src="/image/koog_book_logo.png" alt="Koog Book Logo" style="max-width: 200px;">
+    <img id="logo-image" src="/image/koog_book_logo_dark.png" alt="Koog Book Logo" style="max-width: 200px;">
 </div>
 
 <div class="input-container">
@@ -244,19 +244,22 @@
 
         // Theme handling
         function setTheme(isDark) {
+            const logoImage = document.getElementById('logo-image');
             if (isDark) {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 themeSwitch.checked = true;
+                logoImage.src = '/image/koog_book_logo_dark.png';
             } else {
                 document.documentElement.removeAttribute('data-theme');
                 themeSwitch.checked = false;
+                logoImage.src = '/image/koog_book_logo_light.png';
             }
             localStorage.setItem('darkTheme', isDark);
         }
 
-        // Check for saved theme preference
+        // Check for saved theme preference or use dark theme by default
         const savedTheme = localStorage.getItem('darkTheme');
-        if (savedTheme === 'true') {
+        if (savedTheme === null || savedTheme === 'true') {
             setTheme(true);
         }
 
