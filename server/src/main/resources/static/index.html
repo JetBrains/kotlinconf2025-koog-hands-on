@@ -220,7 +220,7 @@
 </div>
 
 <div class="ingredients-container">
-    <h2>Ingredients</h2>
+    <h2 id="ingredients-title">Ingredients</h2>
     <ul class="ingredients-list" id="ingredients-list">
         <!-- Ingredients will be added here dynamically -->
     </ul>
@@ -235,6 +235,9 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const ingredientsTitleName = "Ingredients"
+        const ingredientsTitle = document.getElementById('ingredients-title');
+
         const userPromptInput = document.getElementById('user-prompt');
         const cookButton = document.getElementById('cook-button');
         const ingredientsList = document.getElementById('ingredients-list');
@@ -259,7 +262,9 @@
 
         // Check for saved theme preference or use dark theme by default
         const savedTheme = localStorage.getItem('darkTheme');
-        if (savedTheme === null || savedTheme === 'true') {
+        if (savedTheme === null || savedTheme === 'false') {
+            setTheme(false);
+        } else {
             setTheme(true);
         }
 
@@ -336,7 +341,7 @@
 
             // Set up SSE connection for agent events
             setupSSEConnection();
-
+            let ingredientsArr = [];
             // Set up SSE connection for ingredients
             eventSource = new EventSource(`/cook?input=${encodeURIComponent(userPrompt)}`);
 
@@ -344,7 +349,11 @@
                 loadingIndicator.style.display = 'none';
                 console.log('Received ingredients:', event.data);
                 const ingredients = JSON.parse(event.data);
-                displayIngredients(ingredients);
+                ingredients.forEach(ingredient => {
+                    ingredientsArr.push(ingredient);
+                })
+
+                displayIngredients(ingredientsArr, userPrompt);
             });
 
             eventSource.addEventListener('done', function (event) {
@@ -359,8 +368,12 @@
             };
         });
 
-        function displayIngredients(ingredients) {
+        function displayIngredients(ingredients, userPrompt) {
             ingredientsList.innerHTML = '';
+            let ingTitle = ingredientsTitleName + " for " + userPrompt;
+            if (ingTitle !== ingredientsTitle.textContent) {
+                ingredientsTitle.textContent = ingTitle;
+            }
 
             ingredients.forEach(ingredient => {
                 const listItem = document.createElement('li');
