@@ -1,4 +1,4 @@
-rootProject.name = "kooging-book"
+rootProject.name = "koog-book"
 
 pluginManagement {
     resolutionStrategy {
