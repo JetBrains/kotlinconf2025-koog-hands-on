@@ -2,7 +2,8 @@ package ai.koog.kooging.book.app.model
 
 import kotlinx.serialization.Serializable
 
-interface Message
+@Serializable
+sealed class Message
 
 enum class LLMMessageType {
     ASSISTANT,
@@ -11,11 +12,11 @@ enum class LLMMessageType {
 
 @Serializable
 data class LLMMessage(
-    val type: LLMMessageType,
+    val messageType: LLMMessageType,
     val content: String
-) : Message
+) : Message()
 
 @Serializable
 data class LLMErrorMessage(
     val message: String
-) : Message
+) : Message()

@@ -1,5 +1,6 @@
 package ai.koog.kooging.book.app.server
 
+import ai.koog.kooging.book.agent.CookingAgent.Companion.startCookAgent
 import ai.koog.kooging.book.app.model.Message
 import ai.koog.kooging.book.app.model.Product
 import ai.koog.kooging.book.app.service.WebShopService
@@ -88,10 +89,9 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
                 application.attributes.put(LastCookRequestKey, userInput)
 
                 // Start an agent
-//                startCookAgent(userInput, webShop = webShop) { message ->
-//                    sendMessage(message = message)
-//                }
-
+                startCookAgent(userInput, webShop = webShop) { message ->
+                    sendMessage(message = message)
+                }
 
                 try {
                     val products = webShop.getAllProducts()

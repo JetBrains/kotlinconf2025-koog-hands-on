@@ -202,7 +202,7 @@ class CookingAgent(
         install(EventHandler) {
             onToolCallResult = { tool, toolArgs, result ->
                 val message = LLMMessage(
-                    type = LLMMessageType.TOOL_CALL,
+                    messageType = LLMMessageType.TOOL_CALL,
                     content = "Call tool: '${tool.name}', args: '$toolArgs', result: '$result'"
                 )
                 onAgentEvent(message)
@@ -210,7 +210,7 @@ class CookingAgent(
 
             onAgentFinished = { strategyName: String, result: String? ->
                 val message = LLMMessage(
-                    type = LLMMessageType.ASSISTANT,
+                    messageType = LLMMessageType.ASSISTANT,
                     content = result ?: "UNKNOWN RESULT"
                 )
                 onAgentEvent(message)
