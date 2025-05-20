@@ -1,7 +1,5 @@
 package ai.koog.kooging.book.app.server
 
-import ai.koog.kooging.book.agent.CookingAgent.Companion.startCookAgent
-import ai.koog.kooging.book.app.model.CookRequest
 import ai.koog.kooging.book.app.model.Message
 import ai.koog.kooging.book.app.model.Product
 import ai.koog.kooging.book.app.service.WebShopService
@@ -13,7 +11,6 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
@@ -21,6 +18,7 @@ import io.ktor.sse.*
 import io.ktor.util.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.consumeAsFlow
 import org.slf4j.LoggerFactory
 import java.lang.AutoCloseable
@@ -81,22 +79,40 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
             staticResources("/", "static") { default("index.html") }
             staticResources("/static/image", "static/image")
 
-            // Cook POST endpoint - receives the user prompt
-            post("/cook") {
-                val request = call.receive<CookRequest>()
-                val userInput = request.input
-                println("Received cook request with input: $userInput")
+            // Cook SSE endpoint - starts agent and returns ingredients based on user input
+            sse("/cook") {
+                val userInput = call.request.queryParameters["input"] ?: ""
+                logger.info("SSE cook request with input: $userInput")
 
                 // Store the request in the application state (for demo purposes)
                 application.attributes.put(LastCookRequestKey, userInput)
 
                 // Start an agent
-                startCookAgent(userInput) { message ->
-                    sendMessage(message = message)
+//                startCookAgent(userInput) { message ->
+//                    sendMessage(message = message)
+//                }
+
+                val products = webShop.getAllProducts()
+                val ingredients = generateRandomIngredients(products, 5).map {
+                    send(
+                        ServerSentEvent(
+                            event = "ingredients",
+                            data = defaultJson.encodeToString(listOf(it))
+                        ))
+                    delay(500)
                 }
 
-                // Respond with success
-                call.respond(HttpStatusCode.OK)
+                try {
+//                    send(
+//                        ServerSentEvent(
+//                            event = "ingredients",
+//                            data = defaultJson.encodeToString(ingredients)
+//                        )
+//                    )
+//                    delay(1000)
+                } catch (t: Throwable) {
+                    logger.error("Error sending ingredients SSE event: ${t.message}", t)
+                }
             }
 
             sse("/sse") {

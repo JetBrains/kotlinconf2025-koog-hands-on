@@ -41,18 +41,22 @@
             color: var(--text-color);
             transition: all 0.3s ease;
         }
+
         h1 {
             color: var(--h1-color);
             text-align: center;
         }
+
         .input-container {
             margin-bottom: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 5px;
             font-weight: bold;
         }
+
         input[type="text"] {
             width: 100%;
             padding: 10px;
@@ -62,6 +66,7 @@
             background-color: var(--input-bg);
             color: var(--text-color);
         }
+
         button {
             background-color: var(--button-bg);
             color: white;
@@ -71,16 +76,20 @@
             cursor: pointer;
             font-size: 16px;
         }
+
         button:hover {
             background-color: var(--button-hover);
         }
+
         .ingredients-container {
             margin-top: 30px;
         }
+
         .ingredients-list {
             list-style-type: none;
             padding: 0;
         }
+
         .ingredient-item {
             background-color: var(--item-bg);
             padding: 10px 15px;
@@ -90,36 +99,44 @@
             display: flex;
             justify-content: space-between;
         }
+
         .ingredient-name {
             font-weight: bold;
         }
+
         .ingredient-price {
             color: var(--price-color);
         }
+
         .loading {
             text-align: center;
             margin: 20px 0;
             display: none;
         }
+
         .messages-container {
             margin-top: 30px;
             border-top: 1px solid var(--input-border);
             padding-top: 20px;
         }
+
         .message {
             margin-bottom: 15px;
             padding: 12px;
             border-radius: 4px;
             background-color: var(--item-bg);
         }
+
         .message.assistant {
             border-left: 4px solid #4CAF50;
         }
+
         .message.tool-call {
             border-left: 4px solid #2196F3;
             font-family: monospace;
             font-size: 0.9em;
         }
+
         .theme-toggle {
             position: absolute;
             top: 20px;
@@ -127,21 +144,25 @@
             display: flex;
             align-items: center;
         }
+
         .theme-toggle label {
             margin-right: 10px;
             cursor: pointer;
         }
+
         .switch {
             position: relative;
             display: inline-block;
             width: 60px;
             height: 34px;
         }
+
         .switch input {
             opacity: 0;
             width: 0;
             height: 0;
         }
+
         .slider {
             position: absolute;
             cursor: pointer;
@@ -153,6 +174,7 @@
             transition: .4s;
             border-radius: 34px;
         }
+
         .slider:before {
             position: absolute;
             content: "";
@@ -164,211 +186,195 @@
             transition: .4s;
             border-radius: 50%;
         }
+
         input:checked + .slider {
             background-color: #2196F3;
         }
+
         input:checked + .slider:before {
             transform: translateX(26px);
         }
     </style>
 </head>
 <body>
-    <div class="theme-toggle">
-        <label for="theme-switch">Dark Mode</label>
-        <label class="switch">
-            <input type="checkbox" id="theme-switch">
-            <span class="slider"></span>
-        </label>
-    </div>
-    <div style="text-align: center; margin-bottom: 50px;">
-        <img src="/image/koog_book_logo.png" alt="Koog Book Logo" style="max-width: 200px;">
-    </div>
+<div class="theme-toggle">
+    <label for="theme-switch">Dark Mode</label>
+    <label class="switch">
+        <input type="checkbox" id="theme-switch">
+        <span class="slider"></span>
+    </label>
+</div>
+<div style="text-align: center; margin-bottom: 50px;">
+    <img src="/image/koog_book_logo.png" alt="Koog Book Logo" style="max-width: 200px;">
+</div>
 
-    <div class="input-container">
-        <label for="user-prompt">I would like to cook...</label>
-        <input type="text" id="user-prompt" placeholder="Enter what you'd like to cook, e.g. 'a salad for dinner'">
+<div class="input-container">
+    <label for="user-prompt">I would like to cook...</label>
+    <input type="text" id="user-prompt" placeholder="Enter what you'd like to cook, e.g. 'a salad for dinner'">
+</div>
+
+<button id="cook-button">Cook</button>
+
+<div class="loading" id="loading">
+    Finding ingredients...
+</div>
+
+<div class="ingredients-container">
+    <h2>Ingredients</h2>
+    <ul class="ingredients-list" id="ingredients-list">
+        <!-- Ingredients will be added here dynamically -->
+    </ul>
+</div>
+
+<div class="messages-container">
+    <h2>Agent Events</h2>
+    <div id="messages-list">
+        <!-- Agent messages will be added here dynamically -->
     </div>
+</div>
 
-    <button id="cook-button">Cook</button>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const userPromptInput = document.getElementById('user-prompt');
+        const cookButton = document.getElementById('cook-button');
+        const ingredientsList = document.getElementById('ingredients-list');
+        const messagesList = document.getElementById('messages-list');
+        const loadingIndicator = document.getElementById('loading');
+        const themeSwitch = document.getElementById('theme-switch');
 
-    <div class="loading" id="loading">
-        Finding ingredients...
-    </div>
+        // Theme handling
+        function setTheme(isDark) {
+            if (isDark) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeSwitch.checked = true;
+            } else {
+                document.documentElement.removeAttribute('data-theme');
+                themeSwitch.checked = false;
+            }
+            localStorage.setItem('darkTheme', isDark);
+        }
 
-    <div class="ingredients-container">
-        <h2>Ingredients</h2>
-        <ul class="ingredients-list" id="ingredients-list">
-            <!-- Ingredients will be added here dynamically -->
-        </ul>
-    </div>
+        // Check for saved theme preference
+        const savedTheme = localStorage.getItem('darkTheme');
+        if (savedTheme === 'true') {
+            setTheme(true);
+        }
 
-    <div class="messages-container">
-        <h2>Agent Events</h2>
-        <div id="messages-list">
-            <!-- Agent messages will be added here dynamically -->
-        </div>
-    </div>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const userPromptInput = document.getElementById('user-prompt');
-            const cookButton = document.getElementById('cook-button');
-            const ingredientsList = document.getElementById('ingredients-list');
-                    const messagesList = document.getElementById('messages-list');
-                    const loadingIndicator = document.getElementById('loading');
-                    const themeSwitch = document.getElementById('theme-switch');
-        
-                    // Theme handling
-                    function setTheme(isDark) {
-                        if (isDark) {
-                            document.documentElement.setAttribute('data-theme', 'dark');
-                            themeSwitch.checked = true;
-                        } else {
-                            document.documentElement.removeAttribute('data-theme');
-                            themeSwitch.checked = false;
-                        }
-                        localStorage.setItem('darkTheme', isDark);
-                    }
-        
-                    // Check for saved theme preference
-                    const savedTheme = localStorage.getItem('darkTheme');
-                    if (savedTheme === 'true') {
-                        setTheme(true);
-                    }
-        
-                    // Handle theme switch
-                    themeSwitch.addEventListener('change', function() {
-                        setTheme(this.checked);
-                    });
-        
-                    let eventSource = null;
-                    let sseSource = null;
-        
-                    // Function to set up SSE connection for agent events
-                    function setupSSEConnection() {
-                        // Close previous connection if exists
-                        if (sseSource) {
-                            sseSource.close();
-                        }
-                        
-                        // Create new SSE connection
-                        sseSource = new EventSource('/sse');
-                        
-                        // Listen for 'message' events from the server
-                        sseSource.addEventListener('message', function(event) {
-                            const message = JSON.parse(event.data);
-                            displayMessage(message);
-                        });
-                        
-                        sseSource.onerror = function() {
-                            console.error('Error in SSE connection');
-                            // Attempt to reconnect after a delay
-                            setTimeout(setupSSEConnection, 5000);
-                        };
-                    }
-                    
-                    // Function to display messages from the agent
-                    function displayMessage(message) {
-                        const messageElement = document.createElement('div');
-                        messageElement.className = 'message';
-                        
-                        // Add specific class based on message type
-                        if (message.type === 'ASSISTANT') {
-                            messageElement.classList.add('assistant');
-                        } else if (message.type === 'TOOL_CALL') {
-                            messageElement.classList.add('tool-call');
-                        }
-                        
-                        messageElement.textContent = message.content;
-                        messagesList.appendChild(messageElement);
-                        
-                        // Auto-scroll to the bottom of the messages
-                        messagesList.scrollTop = messagesList.scrollHeight;
-                    }
-        
-                    cookButton.addEventListener('click', function() {
-                        const userPrompt = userPromptInput.value.trim();
-        
-                        if (!userPrompt) {
-                            alert('Please enter what you would like to cook');
-                            return;
-                        }
-        
-                        // Clear previous results
-                        ingredientsList.innerHTML = '';
-                        messagesList.innerHTML = '';
-                        loadingIndicator.style.display = 'block';
-        
-                        // Clear the input field
-                        userPromptInput.value = '';
-        
-                        // Close previous SSE connection for ingredients if exists
-                        if (eventSource) {
-                            eventSource.close();
-                        }
-                        
-                        // Set up SSE connection for agent events
-                        setupSSEConnection();
-        
-                        // Send the cook request
-                        fetch('/cook', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json'
-                            },
-                            body: JSON.stringify({ input: userPrompt })
-                        })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
-                            }
-        
-                            // Set up SSE connection for ingredients
-                            eventSource = new EventSource('/cook');
-        
-                            eventSource.addEventListener('ingredients', function(event) {
-                                loadingIndicator.style.display = 'none';
-        
-                                const ingredients = JSON.parse(event.data);
-                                displayIngredients(ingredients);
-        
-                                // Close the SSE connection for ingredients after receiving them
-                        eventSource.close();
-                    });
+        // Handle theme switch
+        themeSwitch.addEventListener('change', function () {
+            setTheme(this.checked);
+        });
 
-                    eventSource.onerror = function() {
-                        loadingIndicator.style.display = 'none';
-                        alert('Error receiving ingredients');
-                        eventSource.close();
-                    };
-                })
-                .catch(error => {
-                    loadingIndicator.style.display = 'none';
-                    alert('Error: ' + error.message);
-                });
+        let eventSource = null;
+        let sseSource = null;
+
+        // Function to set up SSE connection for agent events
+        function setupSSEConnection() {
+            // Close previous connection if exists
+            if (sseSource) {
+                sseSource.close();
+            }
+
+            // Create new SSE connection
+            sseSource = new EventSource('/sse');
+
+            // Listen for 'message' events from the server
+            sseSource.addEventListener('message', function (event) {
+                const message = JSON.parse(event.data);
+                displayMessage(message);
             });
 
-            function displayIngredients(ingredients) {
-                ingredientsList.innerHTML = '';
+            sseSource.onerror = function () {
+                console.error('Error in SSE connection');
+                // Attempt to reconnect after a delay
+                setTimeout(setupSSEConnection, 5000);
+            };
+        }
 
-                ingredients.forEach(ingredient => {
-                    const listItem = document.createElement('li');
-                    listItem.className = 'ingredient-item';
+        // Function to display messages from the agent
+        function displayMessage(message) {
+            const messageElement = document.createElement('div');
+            messageElement.className = 'message';
 
-                    const nameSpan = document.createElement('span');
-                    nameSpan.className = 'ingredient-name';
-                    nameSpan.textContent = ingredient.name;
-
-                    const priceSpan = document.createElement('span');
-                    priceSpan.className = 'ingredient-price';
-                    priceSpan.textContent = `$${ingredient.price.toFixed(2)}`;
-
-                    listItem.appendChild(nameSpan);
-                    listItem.appendChild(priceSpan);
-                    ingredientsList.appendChild(listItem);
-                });
+            // Add specific class based on message type
+            if (message.type === 'ASSISTANT') {
+                messageElement.classList.add('assistant');
+            } else if (message.type === 'TOOL_CALL') {
+                messageElement.classList.add('tool-call');
             }
+
+            messageElement.textContent = message.content;
+            messagesList.appendChild(messageElement);
+
+            // Auto-scroll to the bottom of the messages
+            messagesList.scrollTop = messagesList.scrollHeight;
+        }
+
+        cookButton.addEventListener('click', function () {
+            const userPrompt = userPromptInput.value.trim();
+
+            if (!userPrompt) {
+                alert('Please enter what you would like to cook');
+                return;
+            }
+
+            // Clear previous results
+            ingredientsList.innerHTML = '';
+            messagesList.innerHTML = '';
+            loadingIndicator.style.display = 'block';
+
+            // Clear the input field
+            userPromptInput.value = '';
+
+            // Close previous SSE connection for ingredients if exists
+            if (eventSource) {
+                eventSource.close();
+            }
+
+            // Set up SSE connection for agent events
+            setupSSEConnection();
+
+            // Set up SSE connection for ingredients
+            eventSource = new EventSource(`/cook?input=${encodeURIComponent(userPrompt)}`);
+
+            eventSource.addEventListener('ingredients', function (event) {
+                loadingIndicator.style.display = 'none';
+
+                const ingredients = JSON.parse(event.data);
+                displayIngredients(ingredients);
+
+                // Close the SSE connection for ingredients after receiving them
+                eventSource.close();
+            });
+
+            eventSource.onerror = function () {
+                loadingIndicator.style.display = 'none';
+                alert('Error receiving ingredients: ' + event.data);
+                eventSource.close();
+            };
         });
-    </script>
+
+        function displayIngredients(ingredients) {
+            ingredientsList.innerHTML = '';
+
+            ingredients.forEach(ingredient => {
+                const listItem = document.createElement('li');
+                listItem.className = 'ingredient-item';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'ingredient-name';
+                nameSpan.textContent = ingredient.name;
+
+                const priceSpan = document.createElement('span');
+                priceSpan.className = 'ingredient-price';
+                priceSpan.textContent = `$${ingredient.price.toFixed(2)}`;
+
+                listItem.appendChild(nameSpan);
+                listItem.appendChild(priceSpan);
+                ingredientsList.appendChild(listItem);
+            });
+        }
+    });
+</script>
 </body>
 </html>
