@@ -4,11 +4,10 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.AIAgent.FeatureContext
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
-import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.tools.ToolRegistry
-import ai.koog.agents.core.tools.reflect.asTool
+import ai.koog.agents.core.tools.reflect.asTools
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.agents.local.features.eventHandler.feature.EventHandler
 import ai.koog.agents.local.features.tracing.feature.Tracing
@@ -74,8 +73,7 @@ class CookingAgent(
     private fun createCookingStrategy(): AIAgentStrategy =
         strategy("cooking-agent") {
             val splitDishIntoIngredients by subgraphWithTask(
-                toolSelectionStrategy = ToolSelectionStrategy.NONE,
-                shouldTLDRHistory = false,
+                tools = emptyList()
             ) { dish: String ->
                 markdown {
                     h1("TASK")
@@ -104,11 +102,7 @@ class CookingAgent(
 
             val tools = ShoppingTools(webShop)
             val searchIngredients by subgraphWithTask(
-                tools = listOf(
-                    tools::searchProduct.asTool(),
-                    tools::putProductInShoppingBasket.asTool()
-                ),
-                shouldTLDRHistory = false,
+                tools = tools.asTools()
             ) { ingredientList: String ->
                 markdown {
                     h1("TASK")
@@ -127,16 +121,6 @@ class CookingAgent(
             edge(nodeStart forwardTo splitDishIntoIngredients)
             edge(splitDishIntoIngredients forwardTo searchIngredients transformed { it.result })
             edge(searchIngredients forwardTo nodeFinish transformed { it.result })
-
-            // TODO: Delete - Simple test
-//            val askNode by nodeLLMRequest("Ask LLM")
-//            val nodeExecuteTool by nodeExecuteTool("nodeExecuteTool")
-//            val nodeSendToolResult by nodeLLMSendToolResult("nodeSendToolResult")
-//            edge(nodeStart forwardTo askNode)
-//            edge(askNode forwardTo nodeExecuteTool onToolCall { true })
-//            edge(nodeExecuteTool forwardTo nodeSendToolResult)
-//            edge(nodeSendToolResult forwardTo nodeFinish onAssistantMessage { true })
-//            edge(askNode forwardTo nodeFinish onAssistantMessage { true })
         }
 
     suspend fun execute(cookingRequest: String, onAgentEvent: suspend (Message) -> Unit): String? {
@@ -144,11 +128,10 @@ class CookingAgent(
 
         val shoppingTools = ShoppingTools(webShop)
         val toolRegistry = ToolRegistry {
-            tool(shoppingTools::searchProduct.asTool())
-            tool(shoppingTools::putProductInShoppingBasket.asTool())
+            tools(shoppingTools.asTools())
         }
 
-        val strategy = createCookingStrategy()
+        val cookingStrategy = createCookingStrategy()
 
         val agentConfig = AIAgentConfig(
             prompt = prompt("system") {
@@ -160,7 +143,7 @@ class CookingAgent(
 
         val agent = AIAgent(
             promptExecutor = executor,
-            strategy = strategy,
+            strategy = cookingStrategy,
             agentConfig = agentConfig,
             toolRegistry = toolRegistry,
             installFeatures = { configureFeatures(onAgentEvent) }

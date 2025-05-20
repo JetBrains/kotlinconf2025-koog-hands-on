@@ -2,9 +2,11 @@ package ai.koog.kooging.book.agent.tool
 
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
+import ai.koog.agents.core.tools.reflect.ToolSet
 import ai.koog.kooging.book.app.service.WebShopService
 import kotlinx.serialization.json.Json
 
+object ShoppingTools : ToolSet {
 
 class ShoppingTools(private val webShop: WebShopService) {
 
