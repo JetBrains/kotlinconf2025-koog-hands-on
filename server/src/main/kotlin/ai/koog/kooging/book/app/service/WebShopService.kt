@@ -1,15 +1,23 @@
-package ai.koog.kooging.book.model
+package ai.koog.kooging.book.app.service
 
-import kotlinx.serialization.Serializable
+import ai.koog.kooging.book.agent.CookingAgent
+import ai.koog.kooging.book.app.model.Product
+import ai.koog.kooging.book.app.model.ProductCatalog
 import kotlinx.serialization.json.Json
-
-@Serializable
-private data class ProductCatalog(val products: List<Product>)
+import org.slf4j.LoggerFactory
 
 /**
  * A class that manages an online shop with product catalog and shopping basket functionality.
  */
-class WebShop {
+class WebShopService {
+
+    companion object {
+        private val logger = LoggerFactory.getLogger(WebShopService::class.java)
+    }
+
+    // TODO: Use agent here
+    // private val agent = CookingAgent()
+
     private val catalogue = mutableListOf<Product>()
     private val basket = mutableListOf<Product>()
 
@@ -18,27 +26,8 @@ class WebShop {
     }
 
     /**
-     * Loads product data from a JSON file into the catalogue.
-     */
-    private fun loadProductsFromJson() {
-        try {
-            val jsonFile = WebShop::class.java.classLoader.getResource("products.json")
-            if (jsonFile != null) {
-                val jsonContent = jsonFile.readText()
-                val productCatalog = Json.decodeFromString<ProductCatalog>(jsonContent)
-                catalogue.addAll(productCatalog.products)
-                println("Loaded ${catalogue.size} products from JSON")
-            } else {
-                println("Products JSON file not found")
-            }
-        } catch (e: Exception) {
-            println("Error loading products from JSON: ${e.message}")
-        }
-    }
-
-    /**
      * Adds a product to the shopping basket by its ID.
-     * 
+     *
      * @param id The ID of the product to add
      */
     fun addToBasket(id: Int) {
@@ -47,7 +36,7 @@ class WebShop {
 
     /**
      * Removes a product from the shopping basket by its ID.
-     * 
+     *
      * @param id The ID of the product to remove
      */
     fun removeFromBasket(id: Int) {
@@ -56,7 +45,7 @@ class WebShop {
 
     /**
      * Finds a product in the catalogue by its ID.
-     * 
+     *
      * @param id The ID of the product to find
      * @return The product if found, null otherwise
      */
@@ -73,7 +62,7 @@ class WebShop {
 
     /**
      * Gets the current contents of the shopping basket.
-     * 
+     *
      * @return A list of products in the basket
      */
     fun getBasketContent(): List<Product> {
@@ -82,7 +71,7 @@ class WebShop {
 
     /**
      * Searches for products in the catalogue by name.
-     * 
+     *
      * @param searchTerm The term to search for in product names
      * @return A list of products matching the search term
      */
@@ -92,10 +81,33 @@ class WebShop {
 
     /**
      * Gets all products available in the catalogue.
-     * 
+     *
      * @return A list of all products
      */
     fun getAllProducts(): List<Product> {
         return catalogue.toList()
     }
+
+    //region Private Methods
+
+    /**
+     * Loads product data from a JSON file into the catalogue.
+     */
+    private fun loadProductsFromJson() {
+        try {
+            val jsonFile = WebShopService::class.java.classLoader.getResource("products.json")
+            if (jsonFile != null) {
+                val jsonContent = jsonFile.readText()
+                val productCatalog = Json.decodeFromString<ProductCatalog>(jsonContent)
+                catalogue.addAll(productCatalog.products)
+                println("Loaded ${catalogue.size} products from JSON")
+            } else {
+                println("Products JSON file not found")
+            }
+        } catch (e: Exception) {
+            println("Error loading products from JSON: ${e.message}")
+        }
+    }
+
+    //endregion Private Methods
 }

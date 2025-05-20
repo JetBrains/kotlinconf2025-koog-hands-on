@@ -44,8 +44,8 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
         }
     }
 
-    private fun createCookingStrategy(): AIAgentStrategy {
-        return strategy("cooking-agent") {
+    private fun createCookingStrategy(): AIAgentStrategy =
+        strategy("cooking-agent") {
             val splitDishIntoIngredients by subgraphWithTask(
                 toolSelectionStrategy = ToolSelectionStrategy.NONE,
                 shouldTLDRHistory = false,
@@ -100,7 +100,6 @@ class CookingAgent(private val llmModel: LLModel = OpenAIModels.Chat.GPT4o) {
             edge(splitDishIntoIngredients forwardTo searchIngredients transformed { it.result })
             edge(searchIngredients forwardTo nodeFinish transformed { it.result })
         }
-    }
 
     suspend fun execute(cookingRequest: String): String? {
         val executor = SingleLLMPromptExecutor(OpenAILLMClient(apiKey = token))

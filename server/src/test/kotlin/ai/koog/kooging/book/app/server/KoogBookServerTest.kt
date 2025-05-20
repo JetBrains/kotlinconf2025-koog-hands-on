@@ -1,12 +1,14 @@
-package ai.koog.kooging.book
+package ai.koog.kooging.book.app.server
 
-import ai.koog.kooging.book.app.model.Ingredient
-import ai.koog.kooging.book.app.server.KoogBookServer
-import ai.koog.kooging.book.app.server.KoogServerConfig
-import io.ktor.client.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
+import ai.koog.kooging.book.app.model.Product
+import io.ktor.client.HttpClient
+import io.ktor.client.request.get
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.ContentType
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.contentType
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
@@ -41,7 +43,7 @@ class KoogBookServerTest {
                 }
 
                 // Verify the response
-                assertEquals(HttpStatusCode.OK, response.status)
+                assertEquals(HttpStatusCode.Companion.OK, response.status)
 
                 // Test the GET endpoint for SSE
                 val sseResponse = client.get("$clientBaseUrl:$port/cook")
@@ -62,7 +64,7 @@ class KoogBookServerTest {
                 assertNotNull(dataLine, "SSE data line not found")
 
                 val jsonData = dataLine.substring("data: ".length)
-                val ingredients = Json.decodeFromString<List<Ingredient>>(jsonData)
+                val ingredients = Json.Default.decodeFromString<List<Product>>(jsonData)
 
                 // Verify we have 5 ingredients as expected
                 assertEquals(5, ingredients.size, "Should have 5 ingredients")

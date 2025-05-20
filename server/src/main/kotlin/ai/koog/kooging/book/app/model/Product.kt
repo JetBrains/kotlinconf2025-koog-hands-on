@@ -1,4 +1,4 @@
-package ai.koog.kooging.book.model
+package ai.koog.kooging.book.app.model
 
 import kotlinx.serialization.Serializable
 

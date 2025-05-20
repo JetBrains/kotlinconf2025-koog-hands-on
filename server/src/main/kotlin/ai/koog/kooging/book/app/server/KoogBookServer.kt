@@ -1,9 +1,8 @@
 package ai.koog.kooging.book.app.server
 
 import ai.koog.kooging.book.app.model.CookRequest
-import ai.koog.kooging.book.app.model.Ingredient
-import ai.koog.kooging.book.model.Product
-import ai.koog.kooging.book.model.WebShop
+import ai.koog.kooging.book.app.model.Product
+import ai.koog.kooging.book.app.service.WebShopService
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
@@ -25,14 +24,16 @@ import java.lang.AutoCloseable
 class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
 
     companion object {
-        private val logger = LoggerFactory.getLogger("ai.koog.kooging.book.app.server.KoogBookServer")
+        private val logger = LoggerFactory.getLogger(KoogBookServer::class.java)
 
         private val LastCookRequestKey = AttributeKey<String>("lastCookRequest")
     }
 
-    private val server = embeddedServer(CIO, port = config.port) {
+    private val server = embeddedServer(CIO, host = config.host, port = config.port) {
         configureServer()
     }
+
+    private val webShop = WebShopService()
 
     fun startServer(wait: Boolean = true) {
         server.start(wait = wait)
@@ -48,9 +49,6 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
 
     private fun Application.configureServer() {
 
-        val webShop = WebShop()
-
-        // Configure plugins
         install(DefaultHeaders)
         install(ContentNegotiation) {
             json(Json {
@@ -59,13 +57,13 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
             })
         }
 
-        // Configure routing
-        routing {
-            staticResources("/", "static") {
-                default("index.html")
-            }
+        configureRouting()
+    }
 
-            staticResources("/image", "image")
+    private fun Application.configureRouting(): Routing =
+        routing {
+            staticResources("/", "static") { default("index.html") }
+            staticResources("/static/image", "static/image")
 
             // Cook POST endpoint - receives the user prompt
             post("/cook") {
@@ -73,9 +71,10 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
                 val userInput = request.input
                 println("Received cook request with input: $userInput")
 
-
                 // Store the request in the application state (for demo purposes)
                 application.attributes.put(LastCookRequestKey, userInput)
+
+
 
                 // Respond with success
                 call.respond(HttpStatusCode.OK)
@@ -86,13 +85,14 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
                 // Set up SSE response
                 call.response.cacheControl(CacheControl.NoCache(null))
                 call.respondTextWriter(contentType = ContentType.Text.EventStream) {
+
                     // Generate 5 random ingredients
                     val allProducts = webShop.getAllProducts()
                     val randomIngredients = generateRandomIngredients(allProducts, 5)
 
                     // Send ingredients as SSE event
                     val ingredientsJson = Json.encodeToString(
-                        ListSerializer(Ingredient.serializer()),
+                        ListSerializer(Product.serializer()),
                         randomIngredients
                     )
 
@@ -106,14 +106,13 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
                 }
             }
         }
-    }
 
     // TODO: Delete
-    private fun generateRandomIngredients(products: List<Product>, count: Int): List<Ingredient> {
+    private fun generateRandomIngredients(products: List<Product>, count: Int): List<Product> {
         return products
             .shuffled()
             .take(count)
-            .map { Ingredient(it.name, it.id.toString(), it.price) }
+            .map { product ->  Product(id = product.id, name = product.name, price = product.price) }
     }
 
     //endregion Private Methods
