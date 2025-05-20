@@ -1,12 +1,11 @@
-package ai.koog.kooging.book.agent.tool
+package ai.koog.kooging.book.agent
 
 import ai.koog.agents.core.tools.annotations.LLMDescription
 import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.kooging.book.app.service.WebShopService
 import kotlinx.serialization.json.Json
 
-
-class ShoppingTools(private val webShop: WebShopService) {
+class CookingAgentTools(private val webShop: WebShopService) {
 
     @Tool
     @LLMDescription("Search for an product in the food internet shop")
@@ -14,7 +13,7 @@ class ShoppingTools(private val webShop: WebShopService) {
         @LLMDescription("Product name") query: String,
     ): String {
         val products = webShop.searchProducts(query)
-        return Json.encodeToString(products)
+        return Json.Default.encodeToString(products)
     }
 
     @Tool
