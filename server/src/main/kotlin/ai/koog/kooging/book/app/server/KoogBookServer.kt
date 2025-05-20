@@ -12,11 +12,13 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
+import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.sse.*
 import io.ktor.util.*
+import io.ktor.util.reflect.instanceOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import org.slf4j.LoggerFactory
@@ -109,6 +111,35 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
             get("/healthcheck") {
                 call.respond(HttpStatusCode.OK, "Koog Book Server is running")
+            }
+
+            get("/cart") {
+                call.respond(WebShopService.instance.getBasketContent())
+            }
+
+            post("/cart/add") {
+                val productId = call.request.queryParameters["id"]?.toIntOrNull()
+                if (productId != null) {
+                    WebShopService.instance.putToBasket(productId)
+                    call.respond(HttpStatusCode.OK, "Product added to cart")
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid product ID")
+                }
+            }
+
+            post("/cart/remove") {
+                val productId = call.request.queryParameters["id"]?.toIntOrNull()
+                if (productId != null) {
+                    WebShopService.instance.removeFromBasket(productId)
+                    call.respond(HttpStatusCode.OK, "Product removed from cart")
+                } else {
+                    call.respond(HttpStatusCode.BadRequest, "Invalid product ID")
+                }
+            }
+
+            post("/cart/clear") {
+                WebShopService.instance.emptyBasket()
+                call.respond(HttpStatusCode.OK, "Cart cleared")
             }
         }
 

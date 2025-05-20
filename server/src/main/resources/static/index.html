@@ -5,14 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cooking Assistant</title>
     <link rel="stylesheet" href="/css/styles.css">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
 </head>
 <body>
-<div class="theme-toggle">
-    <label for="theme-switch">Dark Mode</label>
-    <label class="switch">
-        <input type="checkbox" id="theme-switch">
-        <span class="slider"></span>
-    </label>
+<div class="header">
+    <div class="theme-toggle">
+        <label for="theme-switch">Dark Mode</label>
+        <label class="switch">
+            <input type="checkbox" id="theme-switch">
+            <span class="slider"></span>
+        </label>
+    </div>
+    <div class="cart-icon" id="cart-icon">
+        <span class="material-icons">shopping_cart</span>
+        <span class="cart-count" id="cart-count">0</span>
+    </div>
 </div>
 <div style="text-align: center; margin-bottom: 50px;">
     <img id="logo-image" src="/image/koog_book_logo_dark.png" alt="Koog Book Logo" style="max-width: 200px;">
@@ -34,6 +41,24 @@
     <ul class="ingredients-list" id="ingredients-list">
         <!-- Ingredients will be added here dynamically -->
     </ul>
+</div>
+
+<div class="cart-overlay" id="cart-overlay"></div>
+<div class="cart-container" id="cart-container">
+    <div class="cart-header">
+        <h2>Shopping Cart</h2>
+        <button class="cart-close-button" id="cart-close-button">
+            <span class="material-icons">close</span>
+        </button>
+    </div>
+    <ul class="cart-list" id="cart-list">
+        <!-- Cart items will be added here dynamically -->
+    </ul>
+    <div class="cart-total">
+        <span>Total: $</span>
+        <span id="cart-total">0.00</span>
+    </div>
+    <button id="clear-cart-button">Clear Cart</button>
 </div>
 
 <div class="messages-container">
@@ -219,6 +244,192 @@
 
         function eventsScrollDown() {
             messagesList.scrollTop = messagesList.scrollHeight;
+        }
+
+        // Cart functionality
+        const cartList = document.getElementById('cart-list');
+        const cartTotal = document.getElementById('cart-total');
+        const cartCount = document.getElementById('cart-count');
+        const cartIcon = document.getElementById('cart-icon');
+        const cartContainer = document.getElementById('cart-container');
+        const clearCartButton = document.getElementById('clear-cart-button');
+
+        // Initialize cart
+        let cart = [];
+
+        // Load cart on page load
+        loadCart();
+
+        const cartOverlay = document.getElementById('cart-overlay');
+
+        // Function to open cart
+        function openCart() {
+            cartContainer.classList.add('show');
+            cartOverlay.classList.add('show');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when cart is open
+        }
+
+        // Function to close cart
+        function closeCart() {
+            cartContainer.classList.remove('show');
+            cartOverlay.classList.remove('show');
+            document.body.style.overflow = ''; // Restore scrolling
+        }
+
+        // Toggle cart visibility when clicking on cart icon
+        cartIcon.addEventListener('click', function() {
+            if (cartContainer.classList.contains('show')) {
+                closeCart();
+            } else {
+                openCart();
+            }
+        });
+
+        // Close cart when clicking on close button
+        const cartCloseButton = document.getElementById('cart-close-button');
+        cartCloseButton.addEventListener('click', function() {
+            closeCart();
+        });
+
+        // Close cart when clicking on overlay
+        cartOverlay.addEventListener('click', function() {
+            closeCart();
+        });
+
+        // Close cart when clicking outside of it (except for the cart icon and overlay which have their own handlers)
+        document.addEventListener('click', function(event) {
+            if (!cartContainer.contains(event.target) &&
+                !cartIcon.contains(event.target) &&
+                !cartOverlay.contains(event.target) &&
+                cartContainer.classList.contains('show')) {
+                closeCart();
+            }
+        });
+
+        // Clear cart when clicking on clear cart button
+        clearCartButton.addEventListener('click', function() {
+            clearCart();
+        });
+
+        // Function to add an item to the cart
+        function addToCart(product) {
+            // Add to backend
+            fetch(`/cart/add?id=${product.id}`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Add to local cart
+                    cart.push(product);
+                    updateCartDisplay();
+
+                    // Show notification
+                    alert(`${product.name} added to cart!`);
+                } else {
+                    alert('Failed to add product to cart');
+                }
+            })
+            .catch(error => {
+                console.error('Error adding product to cart:', error);
+                alert('Error adding product to cart');
+            });
+        }
+
+        // Function to remove an item from the cart
+        function removeFromCart(productId) {
+            // Remove from backend
+            fetch(`/cart/remove?id=${productId}`, {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Remove from local cart
+                    cart = cart.filter(item => item.id !== productId);
+                    updateCartDisplay();
+                } else {
+                    alert('Failed to remove product from cart');
+                }
+            })
+            .catch(error => {
+                console.error('Error removing product from cart:', error);
+                alert('Error removing product from cart');
+            });
+        }
+
+        // Function to clear the cart
+        function clearCart() {
+            // Clear backend cart
+            fetch('/cart/clear', {
+                method: 'POST'
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Clear local cart
+                    cart = [];
+                    updateCartDisplay();
+                } else {
+                    alert('Failed to clear cart');
+                }
+            })
+            .catch(error => {
+                console.error('Error clearing cart:', error);
+                alert('Error clearing cart');
+            });
+        }
+
+        // Function to load the cart from the backend
+        function loadCart() {
+            fetch('/cart')
+            .then(response => response.json())
+            .then(data => {
+                cart = data;
+                updateCartDisplay();
+            })
+            .catch(error => {
+                console.error('Error loading cart:', error);
+            });
+        }
+
+        // Function to update the cart display
+        function updateCartDisplay() {
+            // Update cart count
+            cartCount.textContent = cart.length;
+
+            // Update cart list
+            cartList.innerHTML = '';
+
+            // Calculate total
+            let total = 0;
+
+            cart.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.className = 'cart-item';
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'cart-item-name';
+                nameSpan.textContent = item.name;
+
+                const priceSpan = document.createElement('span');
+                priceSpan.className = 'cart-item-price';
+                priceSpan.textContent = `$${item.price.toFixed(2)}`;
+
+                const removeButton = document.createElement('button');
+                removeButton.className = 'remove-from-cart-button';
+                removeButton.textContent = 'Remove';
+                removeButton.addEventListener('click', function() {
+                    removeFromCart(item.id);
+                });
+
+                listItem.appendChild(nameSpan);
+                listItem.appendChild(priceSpan);
+                listItem.appendChild(removeButton);
+                cartList.appendChild(listItem);
+
+                total += item.price;
+            });
+
+            // Update total
+            cartTotal.textContent = total.toFixed(2);
         }
     });
 </script>
