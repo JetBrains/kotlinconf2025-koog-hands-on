@@ -10,5 +10,4 @@ pluginManagement {
     }
 }
 
-include(":client")
 include(":server")

@@ -8,14 +8,14 @@ import org.slf4j.LoggerFactory
 /**
  * A class that manages an online shop with product catalog and shopping basket functionality.
  */
-class WebShopService {
+class WebShopService private constructor() {
 
     companion object {
-        private val logger = LoggerFactory.getLogger(WebShopService::class.java)
-    }
 
-    // TODO: Use agent here
-    // private val agent = CookingAgent()
+        private val logger = LoggerFactory.getLogger(WebShopService::class.java)
+
+        val instance: WebShopService by lazy { WebShopService() }
+    }
 
     private val catalogue = mutableListOf<Product>()
     private val basket = mutableListOf<Product>()

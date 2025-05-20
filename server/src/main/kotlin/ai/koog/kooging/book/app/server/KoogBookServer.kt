@@ -1,8 +1,9 @@
 package ai.koog.kooging.book.app.server
 
-import ai.koog.kooging.book.agent.CookingAgent.Companion.startCookAgent
+import ai.koog.kooging.book.app.model.IngredientsMessage
 import ai.koog.kooging.book.app.model.Message
 import ai.koog.kooging.book.app.model.Product
+import ai.koog.kooging.book.app.service.AgentService
 import ai.koog.kooging.book.app.service.WebShopService
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
@@ -19,10 +20,11 @@ import io.ktor.sse.*
 import io.ktor.util.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.consumeAsFlow
+import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.lang.AutoCloseable
+import java.util.UUID
 
 class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
@@ -36,13 +38,16 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
         configureServer()
     }
 
-    private val toSendMessages: Channel<Message> = Channel(Channel.UNLIMITED)
+    private val agentService = AgentService()
 
-    private val webShop = WebShopService()
+    private val toSendMessages: Channel<Message> = Channel(Channel.UNLIMITED)
 
     //region Start / Stop
 
     fun startServer(wait: Boolean = true) {
+        // Init Web Shop API before starting a server
+        WebShopService.instance
+
         server.start(wait = wait)
         logger.info("Server started on port ${config.port}")
     }
@@ -80,6 +85,10 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
             staticResources("/", "static") { default("index.html") }
             staticResources("/static/image", "static/image")
 
+            post("/cancel") {
+
+            }
+
             // Cook SSE endpoint - starts agent and returns ingredients based on user input
             sse("/cook") {
                 val userInput = call.request.queryParameters["input"] ?: ""
@@ -89,55 +98,45 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
                 application.attributes.put(LastCookRequestKey, userInput)
 
                 // Start an agent
-                startCookAgent(userInput, webShop = webShop) { message ->
-                    sendMessage(message = message)
+                agentService.startAgent(UUID.randomUUID().toString(), userInput) { message ->
+                    sendAgentMessage(message)
                 }
 
-                try {
-                    val products = webShop.getAllProducts()
-                    generateRandomIngredients(products, 5).map {
-                        send(
-                            ServerSentEvent(
-                                event = "ingredients",
-                                data = defaultJson.encodeToString(listOf(it))
-                            ))
-                        delay(500)
-                    }
-
-                    // finish message
-                    send(
-                        ServerSentEvent(
-                            event = "done",
-                            data = ""
-                        )
+                send(
+                    ServerSentEvent(
+                        event = "done",
+                        data = ""
                     )
-                } catch (t: Throwable) {
-                    logger.error("Error sending ingredients SSE event: ${t.message}", t)
-                }
-            }
-
-            sse("/sse") {
-                toSendMessages.consumeAsFlow().collect { message ->
-                    try {
-                        val serverEvent = ServerSentEvent(
-                            event = "message",
-                            data = message.toServerEventData()
-                        )
-
-                        send(serverEvent)
-                    } catch (t: CancellationException) {
-                        logger.info("SSE stream cancelled")
-                        throw t
-                    } catch (t: Throwable) {
-                        logger.error("Error sending SSE event: ${t.message}", t)
-                    }
-                }
+                )
             }
 
             get("/healthcheck") {
                 call.respond(HttpStatusCode.OK, "Koog Book Server is running")
             }
         }
+
+    private suspend fun ServerSSESession.sendAgentMessage(message: Message) {
+        try {
+            val event = when (message) {
+                is IngredientsMessage -> "ingredients"
+                else -> "message"
+            }
+
+            val serverEvent = ServerSentEvent(
+                event = event,
+                data = message.toServerEventData()
+            )
+
+            send(serverEvent)
+        }
+        catch (t: CancellationException) {
+            logger.info("SSE stream cancelled")
+            throw t
+        }
+        catch (t: Throwable) {
+            logger.error("Error sending SSE event: ${t.message}", t)
+        }
+    }
 
     // TODO: Delete
     private fun generateRandomIngredients(products: List<Product>, count: Int): List<Product> {

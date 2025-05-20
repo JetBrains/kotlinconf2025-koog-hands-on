@@ -3,10 +3,7 @@ package ai.koog.kooging.book.agent
 import ai.koog.agents.core.agent.AIAgent.FeatureContext
 import ai.koog.agents.local.features.eventHandler.feature.EventHandler
 import ai.koog.agents.local.features.tracing.feature.Tracing
-import ai.koog.kooging.book.app.model.LLMErrorMessage
-import ai.koog.kooging.book.app.model.LLMMessage
-import ai.koog.kooging.book.app.model.LLMMessageType
-import ai.koog.kooging.book.app.model.Message
+import ai.koog.kooging.book.app.model.*
 
 fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
     install(Tracing)
@@ -20,6 +17,25 @@ fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
             onAgentEvent(message)
         }
 
+        var isFirstLLMCall = true
+
+        onAfterLLMWithToolsCall = { response, tools ->
+            if (isFirstLLMCall) {
+                isFirstLLMCall = false
+                val ingredients = response.firstOrNull()?.let { response ->
+                    response.content.split("\n")
+                        .map { ingredient ->
+                            "^[\\d\\s\\-.,;: ]*".toRegex().replaceFirst(ingredient.trim(), "")
+                        }
+                } ?: emptyList()
+                val message = IngredientsMessage(
+                    messageType = LLMMessageType.ASSISTANT,
+                    ingredients = ingredients
+                )
+                onAgentEvent(message)
+            }
+        }
+
         onAgentFinished = { strategyName: String, result: String? ->
             val message = LLMMessage(
                 messageType = LLMMessageType.ASSISTANT,
@@ -29,7 +45,7 @@ fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
         }
 
         onAgentRunError = { strategyName, throwable ->
-            val message = LLMErrorMessage(message = throwable.message ?: "UNKNOWN ERROR")
+            val message = LLMErrorMessage(messageType = LLMMessageType.ERROR, message = throwable.message ?: "UNKNOWN ERROR")
             onAgentEvent(message)
         }
     }

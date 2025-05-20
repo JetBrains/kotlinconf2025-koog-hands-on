@@ -159,9 +159,7 @@
                 loadingIndicator.style.display = 'none';
                 console.log('Received ingredients:', event.data);
                 const ingredients = JSON.parse(event.data);
-                ingredients.forEach(ingredient => {
-                    ingredientsArr.push(ingredient);
-                })
+                ingredientsArr = ingredients.ingredients;
 
                 displayIngredients(ingredientsArr, userPrompt);
             });
@@ -180,7 +178,7 @@
 
         function displayIngredients(ingredients, userPrompt) {
             ingredientsList.innerHTML = '';
-            let ingTitle = ingredientsTitleName + " for " + userPrompt;
+            let ingTitle = ingredientsTitleName;
             if (ingTitle !== ingredientsTitle.textContent) {
                 ingredientsTitle.textContent = ingTitle;
             }
@@ -188,17 +186,7 @@
             ingredients.forEach(ingredient => {
                 const listItem = document.createElement('li');
                 listItem.className = 'ingredient-item';
-
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'ingredient-name';
-                nameSpan.textContent = ingredient.name;
-
-                const priceSpan = document.createElement('span');
-                priceSpan.className = 'ingredient-price';
-                priceSpan.textContent = `$${ingredient.price.toFixed(2)}`;
-
-                listItem.appendChild(nameSpan);
-                listItem.appendChild(priceSpan);
+                listItem.textContent = ingredient;
                 ingredientsList.appendChild(listItem);
             });
         }

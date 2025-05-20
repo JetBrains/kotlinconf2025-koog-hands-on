@@ -5,14 +5,14 @@ import ai.koog.agents.core.tools.annotations.Tool
 import ai.koog.kooging.book.app.service.WebShopService
 import kotlinx.serialization.json.Json
 
-class CookingAgentTools(private val webShop: WebShopService) {
+class CookingAgentTools {
 
     @Tool
     @LLMDescription("Search for an product in the food internet shop")
     fun searchProduct(
         @LLMDescription("Product name") query: String,
     ): String {
-        val products = webShop.searchProducts(query)
+        val products = WebShopService.instance.searchProducts(query)
         return Json.Default.encodeToString(products)
     }
 
@@ -21,9 +21,10 @@ class CookingAgentTools(private val webShop: WebShopService) {
     fun putProductInShoppingBasket(
         @LLMDescription("An id of the product to put in the shopping basket") id: Int,
     ): String {
-        webShop.findProduct(id)?.let {
-            webShop.putToBasket(it.id)
-            return "Product ${it.name} with id ${it.id} and price ${it.price} successfully added to the shopping basket"
+        WebShopService.instance.let { service ->
+            val product = service.findProduct(id) ?: return@let
+            service.putToBasket(id = product.id)
+            return "Product ${product.name} with id ${product.id} and price ${product.price} successfully added to the shopping basket"
         }
 
         return "Product with id $id not found"

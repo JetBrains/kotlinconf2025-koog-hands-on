@@ -8,6 +8,7 @@ sealed class Message
 enum class LLMMessageType {
     ASSISTANT,
     TOOL_CALL,
+    ERROR,
 }
 
 @Serializable
@@ -18,5 +19,12 @@ data class LLMMessage(
 
 @Serializable
 data class LLMErrorMessage(
+    val messageType: LLMMessageType,
     val message: String
+) : Message()
+
+@Serializable
+data class IngredientsMessage(
+    val messageType: LLMMessageType,
+    val ingredients: List<String>
 ) : Message()
