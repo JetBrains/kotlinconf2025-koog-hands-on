@@ -4,11 +4,11 @@ import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.AIAgent.FeatureContext
 import ai.koog.agents.core.agent.config.AIAgentConfig
 import ai.koog.agents.core.agent.entity.AIAgentStrategy
-import ai.koog.agents.core.agent.entity.ToolSelectionStrategy
 import ai.koog.agents.core.dsl.builder.forwardTo
 import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.agents.core.tools.reflect.asTool
+import ai.koog.agents.ext.agent.simpleSingleRunAgent
 import ai.koog.agents.ext.agent.subgraphWithTask
 import ai.koog.agents.local.features.eventHandler.feature.EventHandler
 import ai.koog.agents.local.features.tracing.feature.Tracing
@@ -45,7 +45,7 @@ class CookingAgent(
         ) {
             val agent = CookingAgent(webShop = webShop)
             launch(Dispatchers.IO) {
-                agent.execute(cookingRequest, onAgentEvent)
+                agent.executeSimple(cookingRequest, onAgentEvent)
             }
         }
     }
@@ -74,7 +74,7 @@ class CookingAgent(
     private fun createCookingStrategy(): AIAgentStrategy =
         strategy("cooking-agent") {
             val splitDishIntoIngredients by subgraphWithTask(
-                toolSelectionStrategy = ToolSelectionStrategy.NONE,
+                tools = emptyList(),
                 shouldTLDRHistory = false,
             ) { dish: String ->
                 markdown {
@@ -172,6 +172,30 @@ class CookingAgent(
         return agentResult
     }
 
+    suspend fun executeSimple(cookingRequest: String, onAgentEvent: suspend (Message) -> Unit): String? {
+        val executor = SingleLLMPromptExecutor(OpenAILLMClient(apiKey = token))
+
+        val shoppingTools = ShoppingTools(webShop)
+        val toolRegistry = ToolRegistry {
+            tool(shoppingTools::searchProduct.asTool())
+            tool(shoppingTools::putProductInShoppingBasket.asTool())
+        }
+
+        val agent = simpleSingleRunAgent(
+            executor = executor,
+            systemPrompt = systemPrompt,
+            llmModel = llmModel,
+            toolRegistry = toolRegistry,
+            maxIterations = 100,
+            installFeatures = { configureFeatures(onAgentEvent) }
+        )
+
+        val agentResult = agent.runAndGetResult(cookingRequest)
+        logger.info("Agent finished with result: $agentResult")
+
+        return agentResult
+    }
+
     private fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
         install(Tracing)
 
@@ -207,7 +231,7 @@ fun main() = runBlocking {
     println("Starting agent with request: $cookingRequest")
     val webShopService = WebShopService()
     val agent = CookingAgent(webShop = webShopService)
-    val result = agent.execute(cookingRequest) {}
+    val result = agent.executeSimple(cookingRequest) {}
 
     println("Agent finished with result: $result")
 }
