@@ -339,13 +339,15 @@
 
             eventSource.addEventListener('ingredients', function (event) {
                 loadingIndicator.style.display = 'none';
-
+                console.log('Received ingredients:', event.data);
                 const ingredients = JSON.parse(event.data);
                 displayIngredients(ingredients);
-
-                // Close the SSE connection for ingredients after receiving them
-                eventSource.close();
             });
+
+            eventSource.addEventListener('done', function (event) {
+                console.log('Received done event:', event.data);
+                eventSource.close();
+            })
 
             eventSource.onerror = function () {
                 loadingIndicator.style.display = 'none';

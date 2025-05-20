@@ -92,24 +92,25 @@ class KoogBookServer(private val config: KoogServerConfig): AutoCloseable {
 //                    sendMessage(message = message)
 //                }
 
-                val products = webShop.getAllProducts()
-                val ingredients = generateRandomIngredients(products, 5).map {
-                    send(
-                        ServerSentEvent(
-                            event = "ingredients",
-                            data = defaultJson.encodeToString(listOf(it))
-                        ))
-                    delay(500)
-                }
 
                 try {
-//                    send(
-//                        ServerSentEvent(
-//                            event = "ingredients",
-//                            data = defaultJson.encodeToString(ingredients)
-//                        )
-//                    )
-//                    delay(1000)
+                    val products = webShop.getAllProducts()
+                    generateRandomIngredients(products, 5).map {
+                        send(
+                            ServerSentEvent(
+                                event = "ingredients",
+                                data = defaultJson.encodeToString(listOf(it))
+                            ))
+                        delay(500)
+                    }
+
+                    // finish message
+                    send(
+                        ServerSentEvent(
+                            event = "done",
+                            data = ""
+                        )
+                    )
                 } catch (t: Throwable) {
                     logger.error("Error sending ingredients SSE event: ${t.message}", t)
                 }
