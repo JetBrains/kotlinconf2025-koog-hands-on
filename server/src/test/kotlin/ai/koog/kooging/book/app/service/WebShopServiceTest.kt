@@ -1,14 +1,21 @@
 package ai.koog.kooging.book.app.service
 
+import org.junit.After
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class WebShopServiceTest {
 
+    val webShop = WebShopService.instance
+
+    @After
+    fun tearDown() {
+        webShop.emptyBasket()
+    }
+
     @Test
     fun testProductLoading() {
-        val webShop = WebShopService()
 
         val allProducts = webShop.getAllProducts()
         assertTrue(allProducts.isNotEmpty(), "Product catalogue should not be empty")
@@ -27,7 +34,6 @@ class WebShopServiceTest {
 
     @Test
     fun testSearchFunctionality() {
-        val webShop = WebShopService()
 
         val searchTerm = "tomato"
         val searchResults = webShop.searchProducts(query = searchTerm)
@@ -47,8 +53,6 @@ class WebShopServiceTest {
 
     @Test
     fun testBasketInitialState() {
-        val webShop = WebShopService()
-
         assertTrue(
             webShop.getBasketContent().isEmpty(),
             "Basket should be empty initially"
@@ -57,7 +61,6 @@ class WebShopServiceTest {
 
         @Test
     fun testBasketFunctionality() {
-        val webShop = WebShopService()
         assertTrue(webShop.getBasketContent().isEmpty())
 
         webShop.putToBasket(1)
@@ -75,8 +78,6 @@ class WebShopServiceTest {
     
     @Test
     fun testRemoveFromBasket() {
-        val webShop = WebShopService()
-
         webShop.putToBasket(1)
         webShop.putToBasket(2)
 
@@ -89,7 +90,6 @@ class WebShopServiceTest {
     
     @Test
     fun testEmptyBasket() {
-        val webShop = WebShopService()
         webShop.putToBasket(1)
 
         webShop.emptyBasket()
@@ -99,7 +99,6 @@ class WebShopServiceTest {
     
     @Test
     fun testFindProduct() {
-        val webShop = WebShopService()
         val product = webShop.findProduct(1)
 
         assertTrue(product != null, "Should find product with ID 1")
@@ -109,7 +108,6 @@ class WebShopServiceTest {
 
     @Test
     fun testFindNonExistingProduct() {
-        val webShop = WebShopService()
         val nonExistentProduct = webShop.findProduct(9999)
         assertEquals(null, nonExistentProduct, "Should return null for non-existent product")
     }
