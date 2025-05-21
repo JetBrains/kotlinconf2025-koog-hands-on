@@ -132,14 +132,6 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
         }
     }
 
-    // TODO: Delete
-    private fun generateRandomIngredients(products: List<Product>, count: Int): List<Product> {
-        return products
-            .shuffled()
-            .take(count)
-            .map { product -> Product(id = product.id, name = product.name, price = product.price) }
-    }
-
     private fun Message.toServerEventData(): String {
         return defaultJson.encodeToString(this)
     }

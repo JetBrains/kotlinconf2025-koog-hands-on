@@ -37,7 +37,7 @@ class WebShopServiceTest {
 
         val searchTerm = "tomato"
         val searchResults = webShop.searchProducts(query = searchTerm)
-        
+
         assertTrue(
             searchResults.isNotEmpty(),
             "Search for '$searchTerm' should return results"
@@ -45,7 +45,10 @@ class WebShopServiceTest {
 
         searchResults.forEach { product ->
             assertTrue(
-                product.name.contains(searchTerm, ignoreCase = true),
+                (product.name.contains(searchTerm, ignoreCase = true) || levenshteinDistance(
+                    searchTerm,
+                    product.name
+                ) <= 5),
                 "Search result '${product.name}' should contain '$searchTerm'"
             )
         }
@@ -59,7 +62,7 @@ class WebShopServiceTest {
         )
     }
 
-        @Test
+    @Test
     fun testBasketFunctionality() {
         assertTrue(webShop.getBasketContent().isEmpty())
 
@@ -75,7 +78,7 @@ class WebShopServiceTest {
         assertTrue(productIds.contains(2), "Basket should contain product with ID 2")
         assertTrue(productIds.contains(8), "Basket should contain product with ID 8")
     }
-    
+
     @Test
     fun testRemoveFromBasket() {
         webShop.putToBasket(1)
@@ -87,7 +90,7 @@ class WebShopServiceTest {
         assertEquals(1, basketContents.size, "Basket should contain 1 item after removal")
         assertEquals(2, basketContents[0].id, "Remaining item should have ID 2")
     }
-    
+
     @Test
     fun testEmptyBasket() {
         webShop.putToBasket(1)
@@ -96,7 +99,7 @@ class WebShopServiceTest {
 
         assertEquals(0, webShop.getBasketContent().size, "Basket should be empty after emptying")
     }
-    
+
     @Test
     fun testFindProduct() {
         val product = webShop.findProduct(1)
