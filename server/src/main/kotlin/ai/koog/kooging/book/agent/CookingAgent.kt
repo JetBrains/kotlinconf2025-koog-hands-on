@@ -53,7 +53,14 @@ class CookingAgent(private val name: String) {
             installFeatures = { configureFeatures(onAgentEvent) }
         )
 
-        val agentResult = agent.runAndGetResult(cookingRequest)
+        val agentResult = try {
+            agent.runAndGetResult(cookingRequest)
+        }
+        catch (t: Throwable) {
+            logger.error("Error running agent: ${t.message}", t)
+            return null
+        }
+
         logger.info("Agent finished with result: $agentResult")
 
         return agentResult

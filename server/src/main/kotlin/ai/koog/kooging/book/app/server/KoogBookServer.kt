@@ -20,11 +20,9 @@ import io.ktor.sse.*
 import io.ktor.util.*
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.flow.consumeAsFlow
-import kotlinx.coroutines.launch
 import org.slf4j.LoggerFactory
 import java.lang.AutoCloseable
-import java.util.UUID
+import java.util.*
 
 class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
@@ -117,13 +115,9 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
     private suspend fun ServerSSESession.sendAgentMessage(message: Message) {
         try {
-            val event = when (message) {
-                is IngredientsMessage -> "ingredients"
-                else -> "message"
-            }
 
             val serverEvent = ServerSentEvent(
-                event = event,
+                event = message.messageType.event,
                 data = message.toServerEventData()
             )
 

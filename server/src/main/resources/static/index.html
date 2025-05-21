@@ -114,11 +114,17 @@
             const messageElement = document.createElement('div');
             messageElement.className = 'message';
 
-            // Add specific class based on message type
-            if (message.type === 'ASSISTANT') {
+            // Process events
+            const eventType =  message.type.event
+
+            if (eventType === 'assistant') {
                 messageElement.classList.add('assistant');
-            } else if (message.type === 'TOOL_CALL') {
+            }
+            else if (eventType === 'tool_call') {
                 messageElement.classList.add('tool-call');
+            }
+            else if (eventType === 'error') {
+                messageElement.classList.add('error');
             }
 
             messageElement.textContent = message.content;

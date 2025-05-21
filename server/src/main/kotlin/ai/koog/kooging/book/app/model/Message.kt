@@ -3,28 +3,43 @@ package ai.koog.kooging.book.app.model
 import kotlinx.serialization.Serializable
 
 @Serializable
-sealed class Message
+sealed interface Message {
+    val messageType: LLMMessageType
+}
 
-enum class LLMMessageType {
-    ASSISTANT,
-    TOOL_CALL,
-    ERROR,
+enum class LLMMessageType(val event: String) {
+    ASSISTANT("assistant"),
+    TOOL_CALL("tool_call"),
+    INGREDIENTS("ingredients"),
+    ERROR("error"),
 }
 
 @Serializable
 data class LLMMessage(
-    val messageType: LLMMessageType,
     val content: String
-) : Message()
+) : Message {
+    override val messageType: LLMMessageType = LLMMessageType.ASSISTANT
+}
+
+@Serializable
+data class LLMToolCallMessage(
+    val toolName: String,
+    val toolArgs: String,
+    val result: String? = null
+) : Message {
+    override val messageType: LLMMessageType = LLMMessageType.TOOL_CALL
+}
 
 @Serializable
 data class LLMErrorMessage(
-    val messageType: LLMMessageType,
     val message: String
-) : Message()
+) : Message {
+    override val messageType: LLMMessageType = LLMMessageType.ERROR
+}
 
 @Serializable
 data class IngredientsMessage(
-    val messageType: LLMMessageType,
     val ingredients: List<String>
-) : Message()
+) : Message {
+    override val messageType = LLMMessageType.INGREDIENTS
+}

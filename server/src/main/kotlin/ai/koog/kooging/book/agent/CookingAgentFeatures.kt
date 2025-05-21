@@ -10,9 +10,10 @@ fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
 
     install(EventHandler) {
         onToolCallResult = { tool, toolArgs, result ->
-            val message = LLMMessage(
-                messageType = LLMMessageType.TOOL_CALL,
-                content = "Call tool: '${tool.name}', args: '$toolArgs', result: '$result'"
+            val message = LLMToolCallMessage(
+                toolName  = tool.name,
+                toolArgs = toolArgs.toString(),
+                result = result?.toStringDefault() ?: "UNKNOWN TOOL CALL RESULT"
             )
             onAgentEvent(message)
         }
@@ -29,7 +30,6 @@ fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
                         }
                 } ?: emptyList()
                 val message = IngredientsMessage(
-                    messageType = LLMMessageType.ASSISTANT,
                     ingredients = ingredients
                 )
                 onAgentEvent(message)
@@ -38,14 +38,15 @@ fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
 
         onAgentFinished = { strategyName: String, result: String? ->
             val message = LLMMessage(
-                messageType = LLMMessageType.ASSISTANT,
                 content = result ?: "UNKNOWN RESULT"
             )
             onAgentEvent(message)
         }
 
         onAgentRunError = { strategyName, throwable ->
-            val message = LLMErrorMessage(messageType = LLMMessageType.ERROR, message = throwable.message ?: "UNKNOWN ERROR")
+            val message = LLMErrorMessage(
+                message = throwable.message ?: "UNKNOWN ERROR"
+            )
             onAgentEvent(message)
         }
     }
