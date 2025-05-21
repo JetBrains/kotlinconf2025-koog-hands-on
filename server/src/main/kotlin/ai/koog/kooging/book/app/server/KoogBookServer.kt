@@ -12,13 +12,11 @@ import io.ktor.server.engine.*
 import io.ktor.server.http.content.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.plugins.defaultheaders.*
-import io.ktor.server.request.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.server.sse.*
 import io.ktor.sse.*
 import io.ktor.util.*
-import io.ktor.util.reflect.instanceOf
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import org.slf4j.LoggerFactory
@@ -96,10 +94,16 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
                 // Store the request in the application state (for demo purposes)
                 application.attributes.put(LastCookRequestKey, userInput)
 
+                WebShopService.instance.onPutProductToCart { product ->
+                    addProductToCart(product)
+                }
+
                 // Start an agent
                 agentService.startAgent(UUID.randomUUID().toString(), userInput) { message ->
                     sendAgentMessage(message)
                 }
+
+                WebShopService.instance
 
                 send(
                     ServerSentEvent(
@@ -115,16 +119,6 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
             get("/cart") {
                 call.respond(WebShopService.instance.getBasketContent())
-            }
-
-            post("/cart/add") {
-                val productId = call.request.queryParameters["id"]?.toIntOrNull()
-                if (productId != null) {
-                    WebShopService.instance.putToBasket(productId)
-                    call.respond(HttpStatusCode.OK, "Product added to cart")
-                } else {
-                    call.respond(HttpStatusCode.BadRequest, "Invalid product ID")
-                }
             }
 
             post("/cart/remove") {
@@ -144,14 +138,26 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
         }
 
     private suspend fun ServerSSESession.sendAgentMessage(message: Message) {
+        val agentEvent = ServerSentEvent(
+            event = message.messageType.event,
+            data = message.toServerEventData()
+        )
+
+        sendSSEMessage(agentEvent)
+    }
+
+    private suspend fun ServerSSESession.addProductToCart(product: Product) {
+        val serverEvent = ServerSentEvent(
+            event = "addToCart",
+            data = defaultJson.encodeToString(product)
+        )
+
+        sendSSEMessage(serverEvent)
+    }
+
+    private suspend fun ServerSSESession.sendSSEMessage(event: ServerSentEvent) {
         try {
-
-            val serverEvent = ServerSentEvent(
-                event = message.messageType.event,
-                data = message.toServerEventData()
-            )
-
-            send(serverEvent)
+            send(event)
         }
         catch (t: CancellationException) {
             logger.info("SSE stream cancelled")

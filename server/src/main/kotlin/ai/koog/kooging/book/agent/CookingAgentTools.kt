@@ -18,7 +18,7 @@ class CookingAgentTools {
 
     @Tool
     @LLMDescription("Put a product in the shopping basket")
-    fun putProductInShoppingBasket(
+    suspend fun putProductInShoppingBasket(
         @LLMDescription("An id of the product to put in the shopping basket") id: Int,
     ): String {
         WebShopService.instance.let { service ->

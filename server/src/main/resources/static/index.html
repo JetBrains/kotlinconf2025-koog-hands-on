@@ -188,6 +188,13 @@
                 displayErrorMessage(message.message);
             });
 
+            eventSource.addEventListener('addToCart', function (event) {
+                const product = JSON.parse(event.data);
+                //addToCart(product);
+                cart.push(product);
+                updateCartDisplay();
+            });
+
             eventSource.addEventListener('finish', function (event) {
                 console.log('Received finish event:', event.data);
                 console.log("AAA -- received FINISH", "")

@@ -19,9 +19,18 @@ class WebShopService private constructor() {
 
     private val catalogue = mutableListOf<Product>()
     private val basket = mutableListOf<Product>()
+    private var onPutProductToCart: suspend (Product) -> Unit = {}
 
     init {
         loadProductsFromJson()
+    }
+
+    fun onPutProductToCart(action: suspend (Product) -> Unit) {
+        val initialAction = onPutProductToCart
+        onPutProductToCart = { product ->
+            initialAction(product)
+            action(product)
+        }
     }
 
     /**
@@ -29,8 +38,11 @@ class WebShopService private constructor() {
      *
      * @param id The ID of the product to add
      */
-    fun putToBasket(id: Int) {
-        findProduct(id)?.let { basket.add(it) }
+    suspend fun putToBasket(id: Int) {
+        findProduct(id)?.let { product ->
+            basket.add(product)
+            onPutProductToCart(product)
+        }
     }
 
     /**
