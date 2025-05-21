@@ -23,31 +23,56 @@ fun FeatureContext.configureFeatures(onAgentEvent: suspend (Message) -> Unit) {
         onAfterLLMWithToolsCall = { response, tools ->
             if (isFirstLLMCall) {
                 isFirstLLMCall = false
-                val ingredients = response.firstOrNull()?.let { response ->
-                    response.content.split("\n")
-                        .map { ingredient ->
-                            "^[\\d\\s\\-.,;: ]*".toRegex().replaceFirst(ingredient.trim(), "")
-                        }
-                } ?: emptyList()
+                val ingredients = response.firstOrNull()?.getIngredients() ?: emptyList()
                 val message = IngredientsMessage(
                     ingredients = ingredients
                 )
                 onAgentEvent(message)
             }
+
+            val messageBuilder = StringBuilder()
+            messageBuilder.appendLine("LLM Responses:")
+            response.forEach { responseMessage -> messageBuilder.appendLine("  - ${responseMessage.content}") }
+
+            if (tools.isNotEmpty()) {
+                messageBuilder
+                    .append("Tools: ")
+                    .append("[")
+                    .append(tools.joinToString { it.name })
+                    .append("]")
+                    .appendLine()
+            }
+
+            val message = LLMMessage(message = messageBuilder.toString())
+            onAgentEvent(message)
         }
 
         onAgentFinished = { strategyName: String, result: String? ->
             val message = LLMMessage(
-                content = result ?: "UNKNOWN RESULT"
+                message = "Agent finished with result: $result"
             )
             onAgentEvent(message)
         }
 
         onAgentRunError = { strategyName, throwable ->
             val message = LLMErrorMessage(
-                message = throwable.message ?: "UNKNOWN ERROR"
+                message = "Agent execution error: ${throwable.message}"
             )
             onAgentEvent(message)
         }
+    }
+}
+
+private val ingredientItemTrimRegex = "^[\\d\\s\\-.,;: ]*".toRegex()
+private val ingredientItemRegex = "^[\\d-+•*]".toRegex()
+
+private fun ai.koog.prompt.message.Message.Response.getIngredients(): List<String> {
+    // Select only the list of ingredients
+    val trimmedContent = content.lines().filter { line ->
+        ingredientItemRegex.containsMatchIn(line.trim())
+    }
+
+    return trimmedContent.map { ingredient ->
+        ingredientItemTrimRegex.replaceFirst(ingredient.trim(), "")
     }
 }

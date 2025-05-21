@@ -24,19 +24,19 @@ class CookingAgent(private val name: String) {
         }
 
         // 1.
-        val strategy = planCookingStrategy()
+//        val strategy = planCookingStrategy()
 
         // 2.
-//        val strategy = planAndOrderCookingStrategy(
-//            tools = cookingAgentTools
-//        )
+        val strategy = planAndOrderCookingStrategy(
+            tools = cookingAgentTools
+        )
 
         val agentConfig = AIAgentConfig(
             prompt = prompt("system") {
                 // 1.
-                 system(CookingAgentPrompts.planCookingSystemPrompt)
+//                 system(CookingAgentPrompts.planCookingSystemPrompt)
                 // 2.
-//                 system(CookingAgentPrompts.planAndOrderCookingSystemPrompt)
+                 system(CookingAgentPrompts.planAndOrderCookingSystemPrompt)
             },
             model = OpenAIModels.Chat.GPT4o,
             maxAgentIterations = 100

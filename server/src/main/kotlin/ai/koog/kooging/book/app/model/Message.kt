@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 sealed interface Message {
     val messageType: LLMMessageType
+    val message: String
 }
 
 enum class LLMMessageType(val event: String) {
@@ -16,23 +17,26 @@ enum class LLMMessageType(val event: String) {
 
 @Serializable
 data class LLMMessage(
-    val content: String
+    override val message: String
 ) : Message {
     override val messageType: LLMMessageType = LLMMessageType.ASSISTANT
 }
 
 @Serializable
-data class LLMToolCallMessage(
-    val toolName: String,
-    val toolArgs: String,
-    val result: String? = null
+@ConsistentCopyVisibility
+data class LLMToolCallMessage private constructor(
+    override val message: String
 ) : Message {
+    constructor(toolName: String, toolArgs: String, result: String? = null) : this(
+        "Tool Call. Tool:  $toolName, args: $toolArgs, result: $result"
+    )
+
     override val messageType: LLMMessageType = LLMMessageType.TOOL_CALL
 }
 
 @Serializable
 data class LLMErrorMessage(
-    val message: String
+    override val message: String
 ) : Message {
     override val messageType: LLMMessageType = LLMMessageType.ERROR
 }
@@ -42,4 +46,5 @@ data class IngredientsMessage(
     val ingredients: List<String>
 ) : Message {
     override val messageType = LLMMessageType.INGREDIENTS
+    override val message: String = "Received Ingredients list from LLM"
 }

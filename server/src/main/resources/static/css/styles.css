@@ -130,7 +130,7 @@ button:hover {
     font-size: 0.9em;
 }
 
-.message.tool-call {
+.message.error {
     border-left: 4px solid #fd8888;
     font-family: monospace;
     font-size: 0.9em;

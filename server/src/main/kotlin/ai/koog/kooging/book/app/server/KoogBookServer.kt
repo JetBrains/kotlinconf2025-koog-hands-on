@@ -1,6 +1,5 @@
 package ai.koog.kooging.book.app.server
 
-import ai.koog.kooging.book.app.model.IngredientsMessage
 import ai.koog.kooging.book.app.model.Message
 import ai.koog.kooging.book.app.model.Product
 import ai.koog.kooging.book.app.service.AgentService
@@ -102,7 +101,7 @@ class KoogBookServer(private val config: KoogServerConfig) : AutoCloseable {
 
                 send(
                     ServerSentEvent(
-                        event = "done",
+                        event = "finish",
                         data = ""
                     )
                 )
