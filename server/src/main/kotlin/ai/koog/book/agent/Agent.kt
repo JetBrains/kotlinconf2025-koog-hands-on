@@ -2,7 +2,6 @@ package ai.koog.book.agent
 
 import ai.koog.agents.core.agent.AIAgent
 import ai.koog.agents.core.agent.config.AIAgentConfig
-import ai.koog.agents.core.dsl.builder.strategy
 import ai.koog.agents.core.tools.ToolRegistry
 import ai.koog.book.app.model.Message
 import ai.koog.prompt.dsl.prompt
@@ -36,6 +35,7 @@ class CookingAgent() {
 
         val agentConfig = AIAgentConfig(
             prompt = prompt("cook_agent_system_prompt") {
+                system(CookingAgentPrompts.planCookingSystemPrompt)
             },
             model = OpenAIModels.Chat.GPT4o,
             maxAgentIterations = 100
@@ -43,7 +43,7 @@ class CookingAgent() {
 
         val executor = SingleLLMPromptExecutor(OpenAILLMClient(apiKey = token))
 
-        val strategy = strategy("cook agent strategy") { }
+        val strategy = CookingAgentStrategies.planCookingStrategy()
 
         val agent = AIAgent(
             promptExecutor = executor,
