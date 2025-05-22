@@ -19,17 +19,7 @@ class CookingAgentTools : ToolSet {
     fun searchProduct(
         @LLMDescription("Ingredient name") ingredientName: String,
     ): List<Product> {
-
-        // TODO: Define an implementation for the tool
-        //  that search for the products in a shop by an input query (ingredient name) and
-        //  return the list of found products.
-        //  Tips:
-        //      1. Use the [WebShopService.instance] singleton to work with a shop API;
-        //      2. Use the method searchProductsInCatalogue() to search for a products by an input query;
-
-        return emptyList(
-            // TODO: Return a list of products
-        )
+        return WebShopService.instance.searchProductsInCatalogue(ingredientName)
     }
 
     /**
@@ -43,16 +33,11 @@ class CookingAgentTools : ToolSet {
     suspend fun addProductToCart(
         @LLMDescription("The id of the product to add to the shopping cart") productId: Int,
     ): String {
+        val product = WebShopService.instance.getProductInCatalogue(productId)
+            ?: return "Product with id $productId not found"
 
-        // TODO: Define an implementation for the tool
-        //  that adds a product object into a shopping cart by a product Id.
-        //  Tips:
-        //      1. Use the [WebShopService.instance] singleton to work with shopping cart API;
-        //      2. Use the getProductInCatalogue() method to search for a product by id;
-        //      3. Use the addProductToCart() method to add a product to the shopping cart;
-        //      4. Check conditions and ensure that you return a clear [String] output for each case (the LLM will use this output further).
-
-        return "TODO"
+        WebShopService.instance.addProductToCart(product)
+        return "Product ${product.name} with id ${product.id} and price ${product.price} successfully added to the shopping basket"
     }
 
     //endregion Task 2

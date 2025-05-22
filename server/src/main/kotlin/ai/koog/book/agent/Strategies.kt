@@ -90,14 +90,9 @@ object CookingAgentStrategies {
             "Start order ingredients"
         }
 
-        // TODO: Define the agent strategy using the nodes created above, plus [nodeStart] and [nodeFinish]:
-        //  [nodeStart] -> [nodePlanIngredients] -> [subgraphOrderIngredients] -> [nodeFinish].
-        //  Tips:
-        //      1. Use the edge() method declare connection between nodes;
-        //      2. Use the forwardTo() method to connect the 'from' node with the 'to' node;
-        //      3. Use the onAssistantMessage { message -> true } to handle the condition for transitions between nodes if needed;
-        //      4. Use the transformed { subgraphResult -> subgraphResult.result } method
-        //         to transform the output from the 'from' node, which is passed to the 'to' node's input.
+        edge(nodeStart forwardTo nodePlanIngredients)
+        edge(nodePlanIngredients forwardTo subgraphOrderIngredients onAssistantMessage { true })
+        edge(subgraphOrderIngredients forwardTo nodeFinish transformed { subgraphResult -> subgraphResult.result })
     }
 
     //endregion Task 2

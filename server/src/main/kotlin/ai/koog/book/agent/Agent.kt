@@ -47,12 +47,7 @@ class CookingAgent() {
         val agentToolSet = CookingAgentTools()
 
         val toolRegistry = ToolRegistry {
-            // TODO: Define the ToolRegistry with tools from LLM to process the initial request
-            //  Tips:
-            //      1. To add a single tool use tool() method. To add a set of tools, use tools() method
-            //      2. You can use .asTools() extension for [ToolSet] interface
-            //         or add tools one by one with .asTool() extension for KFunction.
-
+            tools(agentToolSet.asTools())
         }
 
         val strategy = CookingAgentStrategies.planAndOrderCookingStrategy(
